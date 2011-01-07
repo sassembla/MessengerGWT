@@ -6,6 +6,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.google.gwt.core.client.JavaScriptObject;
+import com.google.gwt.http.client.URL;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
@@ -35,9 +36,6 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	static final String version = "0.5.0";//11/01/05 19:23:28
 	
 	
-	public final JSONObject JSON_NULL = null;//メッセージ送信、可変長引数のラストにそのままnullて書くとエマージェンシー出るのを回避するためのコード
-	
-	
 	Debug debug;
 	public final String messengerName;
 	public final String messengerID;
@@ -49,8 +47,8 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	public final String KEY_MESSENGER_EXEC = "MESSENGER_exec";
 	public final String KEY_MESSENGER_TAGVALUE_GROUP = "MESSENGER_tagValue"; 
 	
-	List <HashMap <String, String>> sendList = null;
-	public List <HashMap <String, String>> receiveList = null;
+	List <JSONObject> sendList = null;
+	List <JSONObject> receiveList = null;
 	static MessageMasterHub masterHub;
 	
 	static int initializeCount = 0;
@@ -66,6 +64,9 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 		this.invokeObject = invokeObject;
 		masterHub = MessageMasterHub.getMaster();//new MessageMasterHub(getName(), getID(), invokeObject);
 		debug = new Debug(this);
+		
+		sendList = new ArrayList<JSONObject>();
+		receiveList = new ArrayList<JSONObject>();
 		
 		if (initializeCount == 0) setUpMessaging();
 		initializeCount++;
@@ -86,7 +87,13 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 		masterHub = MessageMasterHub.getMaster();//new MessageMasterHub(getName(), getID(), invokeObject);
 		
 		debug = new Debug(this);
-		setUpMessaging();
+		
+		sendList = new ArrayList<JSONObject>();
+		receiveList = new ArrayList<JSONObject>();
+		
+		if (initializeCount == 0) setUpMessaging();
+		initializeCount++;
+		
 		masterHub.setInvokeObject(getName(), getID(), this);
 	}
 	
@@ -115,10 +122,10 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * このメソッドは、staticであるために、
 	 * リスナに関しては最初に誰かがひとつセットすればそれでいい。
 	 * 
-	 * @param e
+	 * @param message
 	 */
-	public static void mtd(String e) {
-		MessageMasterHub.get(e);//イベントを持っているオブジェクトを起動する
+	public static void mtd(String message) {
+		MessageMasterHub.invokeReceive(message);//イベントを持っているオブジェクトを起動する
 	}
 	
 	
@@ -128,6 +135,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	public void messengerFilter() {
 		debug.trace("messengerFilter_ここにいる");
 	}
+	
 	
 	/**
 	 * セットアップ
@@ -152,6 +160,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 		}
 	}-*/;
 	
+	
 //	/**
 //	 * セットアップ
 //	 * 
@@ -164,9 +173,6 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 //		if (typeof window.postMessage === "undefined") { 
 //    		alert("残念ですが、あなたのブラウザはメッセージAPIをサポートしていません。"); 
 //		}
-//		
-//		//event;
-//		
 //		this.@com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::log(Ljava/lang/String;)("セットアップ");//com.google.gwt.user.client.Event
 //		
 //		
@@ -189,66 +195,82 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 //	}-*/;
 	
 
-	
-	public void log (String s) {
-		debug.trace("log_"+s);
-	}
-	
-	
-	
-	
-	private native static void got (Event e) /*-{
-		alert("here");
-	}-*/;
-	
-	
 	/**
 	 * メッセージ受取メソッド
+	 * TODO イベントハンドラで呼ばれている。　イベントに登録したmessenger全てに送られているが、native実装があれば、そんなに頑張らないでいいはず。
 	 * @param event
 	 */
 	@Override
 	public void onMessageReceived(MessageReceivedEvent event) {
 		String rootMessage = event.getMessage();
 		
-		debug.trace("rootMessage_"+rootMessage);
-		String message = "{\"Afooキーと\":\"fooバリューです\"}";
+//		debug.trace("rootMessage_"+rootMessage);
 		
 		JSONObject rootObject = null;
-		String receiverName = null;
+		String toName = null;
 		String command = null;
-		String tagValue = null;
+		JSONObject tagValue = null;
 		
 		try {
-			rootObject = JSONParser.parseStrict(message).isObject();
+			rootObject = JSONParser.parseStrict(rootMessage).isObject();
 		} catch (Exception e) {
 			debug.trace("receiveMessage_parseError_"+e);
 		}
-		receiveCenter(rootMessage);
+		
 		if (rootObject == null) {
 			debug.trace("rootObject = null");
 			return;
 		}
 		
-		receiverName = rootObject.get(KEY_MESSENGER_NAME).isString().toString();
-		if (receiverName == null) return;
-		if (!receiverName.equals(getName())) return;
+		
+		toName = removeDoubleQuatation(rootObject.get(KEY_TO_NAME).isString().toString());
+		
+		if (toName == null) {
+			debug.trace("receiverName = null");
+			return;
+		}
+		
+		if (!toName.equals(getName())) {
+			debug.trace("!receiverName_"+toName+" /vs/ "+getName());
+			return;
+		}
 		
 		//宛先の名前と自分の名前が同じ
 		
 		command = rootObject.get(KEY_MESSENGER_EXEC).isString().toString();
-		if (command == null) return;
+		if (command == null) {
+			debug.trace("command = null");
+			return;
+		}
 		
 		//コマンドも存在する
 		
-		//tagValue = rootObject.get(KEY_MESSENGER_TAGVALUE_GROUP).isString().toString();
-		//if (tagValue == null) return;
+		tagValue = rootObject.get(KEY_MESSENGER_TAGVALUE_GROUP).isObject();
+		if (tagValue == null) {
+			debug.trace("tagValue = null");
+			return;
+		}
+		debug.trace("tagValue_"+tagValue);
 		
 		
-		addReceiveLog(receiverName, command);
+		addReceiveLog(toName, command, tagValue);
 		receiveCenter(rootMessage);
 	}
 	
 	
+	/**
+	 * "文字削り
+	 * @param input
+	 * @return
+	 */
+	private String removeDoubleQuatation (String input) {
+		return input.substring(1, input.length()-1);
+	}
+	
+	
+	/**
+	 * 内部から外部への行使
+	 */
 	public void receiveCenter(String rootMessage) {
 		((MessengerGWTInterface) getInvokeObject()).receiveCenter(rootMessage);
 	}
@@ -256,7 +278,19 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 
 		
 
-
+	/**
+	 * 送付前のメッセージをプレビュー取得するメソッド
+	 * @param receiverName
+	 * @param command
+	 * @param tagValue
+	 * @return
+	 */
+	public JSONObject getMessageObjectPreview (String receiverName, String command, JSONObject ... tagValue) {
+		return getMessageStructure(receiverName, command, tagValue);
+	}
+	
+	
+	
 	/**
 	 * メッセージ送信メソッド
 	 * @param receiverName
@@ -265,16 +299,24 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 */
 	public void call(String receiverName, String command, JSONObject ... tagValue) {
 		
-		if (tagValue == null) {
-			tagValue = new JSONObject [0];//長さ0の配列としてセット、中身は空
-		}
+		JSONObject messageMap = getMessageStructure(receiverName, command, tagValue);
 		
-		HashMap <String, String> messageMap = getMessageStructure(receiverName, command, tagValue);
-		
-		String href = Window.Location.getHref();
+		String href = Window.Location.getHref();//アドレスが変わったら使えない、張り直しなどの対策が必要なところ。
 		postMessage(messageMap.toString(), href);
 		
 		addSendLog(receiverName, command, tagValue);//ログを残す
+	}
+	
+	
+	/**
+	 * メッセージ送信メソッド、
+	 * tagValueが無いバージョン
+	 * @param receiverName
+	 * @param command
+	 */
+	public void call(String receiverName, String command) {
+		JSONObject [] tagValue = new JSONObject [0];//長さ0の配列としてセット、中身は空
+		call(receiverName, command, tagValue);
 	}
 	
 	/**
@@ -302,7 +344,6 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	
 	
 	
-	
 	/**
 	 * メッセージ構造を構築する
 	 * 
@@ -317,14 +358,16 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * @param tagValue
 	 * @return
 	 */
-	private HashMap<String, String> getMessageStructure(String receiverName,
+	private JSONObject getMessageStructure(String receiverName,
 			String command, JSONObject[] tagValue) {
-		HashMap<String, String> messageMap = new HashMap<String, String>();
+		JSONObject messageMap = new JSONObject();
 		
-		messageMap.put(KEY_MESSENGER_NAME, getName());
-		messageMap.put(KEY_MESSENGER_ID, getID());
-		messageMap.put(KEY_TO_NAME, receiverName);
-		messageMap.put(KEY_MESSENGER_EXEC, command);
+		//HashMap<String, String> messageMap = new HashMap<String, String>();
+		
+		messageMap.put(KEY_MESSENGER_NAME, new JSONString(getName()));
+		messageMap.put(KEY_MESSENGER_ID, new JSONString(getID()));
+		messageMap.put(KEY_TO_NAME, new JSONString(receiverName));
+		messageMap.put(KEY_MESSENGER_EXEC, new JSONString(command));
 		
 		JSONObject tagValueGroup = new JSONObject();
 		
@@ -337,9 +380,11 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 			i++;
 		}
 		
-		messageMap.put(KEY_MESSENGER_TAGVALUE_GROUP, tagValueGroup.toString());
+		messageMap.put(KEY_MESSENGER_TAGVALUE_GROUP, tagValueGroup);
+//		debug.trace("messageMap_"+messageMap);//しばらくin-outのテスト用にとっておこう。
 		return messageMap;
 	}
+	
 	
 	
 	
@@ -364,11 +409,11 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	
 	
 	/**
-	 * invocation取得
+	 * invocation元、実行者の取得
 	 * @return
 	 */
 	private Object getInvokeObject() {
-		debug.trace("invokator_"+invokeObject);
+//		debug.trace("invokator_"+invokeObject);
 		return invokeObject;
 	}
 	
@@ -468,7 +513,20 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 
 
 
-
+	/**
+	 * 送信ログをセットする
+	 * 
+	 * @param receiverName
+	 * @param command
+	 * @param tagValue
+	 */
+	public void addSendLog(String receiverName, String command,
+			JSONObject ... tagValue) {
+		JSONObject logMap = getMessageStructure(receiverName, command, tagValue);
+		
+		sendList.add(logMap);		
+	}
+	
 
 	/**
 	 * 送信ログを差し出す
@@ -479,38 +537,27 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 		debug.assertTrue(i < sendList.size(), "oversize of sendList");
 		return sendList.get(i).toString();
 	}
-
-
-
-
+	
+	
 	/**
-	 * 送信ログをセットする
-	 * 
-	 * @param receiverName
-	 * @param command
-	 * @param tagValue
+	 * 送信ログのサイズを取得する
+	 * @return
 	 */
-	public void addSendLog(String receiverName, String command,
-			JSONObject ... tagValue) {
-		if (sendList == null) {
-			sendList = new ArrayList<HashMap <String, String>>();
-		}
-		
-		HashMap<String, String> logMap = getMessageStructure(receiverName, command, tagValue);
-		
-		sendList.add(logMap);		
+	public int getSendLogSize() {
+		return sendList.size();
 	}
 
 	
 	
 
-	
-	private void addReceiveLog(String receiverName, String command) {
-		if (receiveList == null) {
-			receiveList = new ArrayList<HashMap<String,String>>();
-		}
-		
-		HashMap<String, String> logMap = getMessageStructure(receiverName, command, new JSONObject[0]);
+	/**
+	 * 受け取りログに内容を加える
+	 * @param receiverName
+	 * @param command
+	 */
+	private void addReceiveLog(String receiverName, String command, JSONObject ... tagValue) {
+//		debug.trace("addReceiveLog_tagValue_"+tagValue);
+		JSONObject logMap = getMessageStructure(receiverName, command, tagValue);
 		
 		receiveList.add(logMap);
 	}
@@ -522,7 +569,25 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * @return
 	 */
 	public String getReceiveLog(int i) {
+		debug.assertTrue(receiveList != null, "receiveList not yet initialize");
 		return receiveList.get(i).toString();
+	}
+	
+	
+	/**
+	 * 受け取りログのサイズ取得
+	 * @return
+	 */
+	public int getReceiveLogSize() {
+		return receiveList.size();
+	}
+	
+	
+	/**
+	 * TODO 未実装　終了処理
+	 */
+	public void removeInvoke() {
+		//リスナから外す、、という処理が必要かなあ
 	}
 
 

@@ -11,15 +11,18 @@ import com.kissaki.client.subFrame.debug.Debug;
 
 
 public class MessageMasterHub {
-	static List <Object> invokeList = null;
+	
 	static MessageMasterHub hub = new MessageMasterHub();
 	static MessageChecker checker = null;
 	static Debug debug;
 	
+	/**
+	 * シングルトン取得メソッド
+	 * @return
+	 */
 	public static MessageMasterHub getMaster () {
 		return hub;
 	}
-
 	
 	/**
 	 * コンストラクタ、シングルトンの為に秘匿
@@ -29,12 +32,6 @@ public class MessageMasterHub {
 	}
 	
 	public void setInvokeObject(String name, String id, Object invokeObject) {
-		//ここは、各一回しか通らない
-		if (invokeList != null) {
-		
-		} else {
-			invokeList = new ArrayList<Object>();
-		}
 		
 		if (checker != null) {
 			
@@ -42,10 +39,6 @@ public class MessageMasterHub {
 			checker = new MessageChecker();
 		}
 		
-		debug.trace("invokeObject_"+invokeObject);
-		debug.trace("invokeList_size"+invokeList.size());
-		
-		invokeList.add(invokeObject);
 		checker.addMessageReceivedEventHandler((MessageReceivedEventHandler)invokeObject);
 	}
 	
@@ -54,7 +47,7 @@ public class MessageMasterHub {
 	 * ここで、イベントが発行される
 	 * @param message
 	 */
-	public static void get (String message) {
+	public static void invokeReceive (String message) {
 		checker.newMessageReceived(message);
 	}
 }

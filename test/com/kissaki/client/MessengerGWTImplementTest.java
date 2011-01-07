@@ -7,6 +7,7 @@ import com.google.gwt.junit.client.GWTTestCase;
 import com.google.gwt.user.client.Event;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTImplement;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
+import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEvent;
 import com.kissaki.client.subFrame.debug.Debug;
 
 
@@ -15,7 +16,11 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	
 	MessengerGWTImplement messenger;
 	String TEST_MYNAME = "sender";
+	String TEST_COMMAND = "testCommand";
 	String TEST_RECEIVER = "receiver";
+	String TEST_ANOTHERONE = "another";
+	
+	boolean NOT_FOR_LOCAL = false;
 	
 	/**
 	 * コンストラクタ
@@ -47,18 +52,27 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * ティアダウン
 	 */
 	public void gwtTearDown () {
-		messenger.receiveCenter("");
+		messenger.removeInvoke();
 		messenger = null;
 		debug.trace("teardown");
 	}
-
+	
+	/*
+	 * 仮のレシーバー
+	 */
+	MessengerGWTImplement receiver;
+	
+	private void setReceiver () {
+		ReceiverClass rec = new ReceiverClass();
+		receiver = new MessengerGWTImplement(TEST_RECEIVER, rec);
+	}
 	
 	/**
 	 * 上書きしたメソッド、メッセージ受信時に呼ばれる筈。
 	 */
 	@Override
 	public void receiveCenter(String message) {
-		debug.trace("receiveCenter_message_"+message);
+		debug.trace("え、なんか受信してるっちゃしてるの、じゃあ待てばいいだけじゃね？_receiveCenter_message_"+message);
 	}
 	
 	
@@ -120,10 +134,10 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * 
 	 */
 	public void testSingleTagInput () {
-		messenger.call(TEST_RECEIVER, "TestCommand", //この時点でロックして、ただしテストはteardownする。
+		if (NOT_FOR_LOCAL) return;
+		messenger.call(TEST_RECEIVER, TEST_COMMAND, //この時点でロックして、ただしテストはteardownする。
 			messenger.tagValue("キー1", "1")
 		);
-		
 		String s = messenger.getSendLog(0);
 		String expect = "{MESSENGER_exec=TestCommand, MESSENGER_messengerID=CDDED3E3, MESSENGER_tagValue={\"キー1\":\"1\"}, MESSENGER_messengerName=sender, MESSENGER_to=receiver}";
 		assertEquals(expect, s);
@@ -137,7 +151,8 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * 
 	 */
 	public void testMultiTagInput () {
-		messenger.call(TEST_RECEIVER, "TestCommand", 
+		if (NOT_FOR_LOCAL) return;
+		messenger.call(TEST_RECEIVER, TEST_COMMAND, 
 			messenger.tagValue("キー1", 1),//JSONNumber
 			messenger.tagValue("キー2", 2),//JSONNumber
 			messenger.tagValue("キー3", 3),//JSONNumber
@@ -159,7 +174,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void testCreateLog () {
 		
-		messenger.addSendLog(TEST_RECEIVER, "TestCommand", 
+		messenger.addSendLog(TEST_RECEIVER, TEST_COMMAND, 
 				messenger.tagValue("キー1", 1),//JSONNumber
 				messenger.tagValue("キー2", 2),//JSONNumber
 				messenger.tagValue("キー3", 3),//JSONNumber
@@ -195,8 +210,8 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		JSONObject obj = new JSONObject();
 		obj.put("valOf5", new JSONNumber(5));
 		
-		
-		messenger.call(TEST_RECEIVER, "TestCommand",
+		if (NOT_FOR_LOCAL) return;
+		messenger.call(TEST_RECEIVER, TEST_COMMAND,
 			messenger.tagValue("キー1", 1),//JSONNumber
 			messenger.tagValue("キー2", 2.222),//JSONNumber
 			messenger.tagValue("キー3", "val3"),//JSONString
@@ -222,13 +237,8 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * 送信者のコマンド生成チェック
 	 */
 	public void testCommandCreate () {
-		try {
-			messenger.call(TEST_RECEIVER, "testCommand", messenger.JSON_NULL);
-		} catch (Exception e) {
-			debug.trace("error_"+e);
-			assertTrue(false);
-		}
-		
+		if (NOT_FOR_LOCAL) return;
+		messenger.call(TEST_RECEIVER, TEST_COMMAND);
 		
 		//送信記録
 		String s1 = messenger.getSendLog(0);
@@ -237,24 +247,99 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	
 	
 	
-	
-	
-	//受信者がいる場合のテスト//////////////////////////////////////////////////////////
-	MessengerGWTImplement receiver;
-	
-	private void setReceiver () {
-		ReceiverClass rec = new ReceiverClass();
-		receiver = new MessengerGWTImplement(TEST_RECEIVER, rec);
+	//仮想的に受信者がいる場合のテスト//////////////////////////////////////////////////////////
+	/**
+	 * 自分~自分へのメッセージ
+	 */
+	public void testAssumeReceiveLog () {
+		
+		String message = messenger.getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, messenger.tagValue("キー1", "バリュー1")).toString();
+		MessageReceivedEvent event = new MessageReceivedEvent(message);
+        
+		messenger.onMessageReceived(event);
+		String s = messenger.getReceiveLog(0);
+		
+		assertEquals(1, messenger.getReceiveLogSize());
 	}
+	
+	
+	/**
+	 * 自分-自分宛のメッセージを取得したテスト
+	 */
+	public void testGetReceiveToMyself () {
+		String message = messenger.getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, messenger.tagValue("キー1", "バリュー1")).toString();
+		MessageReceivedEvent event = new MessageReceivedEvent(message);
+       
+		messenger.onMessageReceived(event);
+		String s = messenger.getReceiveLog(0);
+		
+		assertEquals(1, messenger.getReceiveLogSize());
+	}
+	
+	
+	/**
+	 * 他人宛のメッセージを取得していないテスト
+	 */
+	public void testNotReceiveTheMessageForAnyone () {
+		String message = messenger.getMessageObjectPreview(TEST_RECEIVER, TEST_COMMAND, messenger.tagValue("キー1", "バリュー1")).toString();
+		MessageReceivedEvent event = new MessageReceivedEvent(message);
+       
+		messenger.onMessageReceived(event);
+		
+		assertEquals(0, messenger.getReceiveLogSize());
+	}
+	
+	
+	/**
+	 * 他人-他人間のメッセージを取得していないテスト
+	 */
+	public void testNotConcernSomeoneToSomeselfMessageNotReceive () {
+		setReceiver();
+		String message = receiver.getMessageObjectPreview(TEST_RECEIVER, TEST_COMMAND, messenger.tagValue("キー1", "バリュー1")).toString();
+		MessageReceivedEvent event = new MessageReceivedEvent(message);
+		
+		messenger.onMessageReceived(event);
+		assertEquals(0, messenger.getReceiveLogSize());
+	}
+	
+	/**
+	 * 他人-第三者間のメッセージを取得していないテスト
+	 */
+	public void testNotConcernSomeoneToSomeoneMessageNotReceive () {
+		setReceiver();
+		String message = receiver.getMessageObjectPreview(TEST_ANOTHERONE, TEST_COMMAND, messenger.tagValue("キー1", "バリュー1")).toString();
+		MessageReceivedEvent event = new MessageReceivedEvent(message);
+		
+		messenger.onMessageReceived(event);
+		assertEquals(0, messenger.getReceiveLogSize());
+	}
+	
+	/**
+	 * 他人-自分宛のメッセージを受け取るテスト
+	 */
+	public void testGetMessageSomeoneToMe () {
+		setReceiver();
+		String message = receiver.getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, messenger.tagValue("キー1", "バリュー1")).toString();
+		MessageReceivedEvent event = new MessageReceivedEvent(message);
+		
+		messenger.onMessageReceived(event);
+		assertEquals(1, messenger.getReceiveLogSize());
+	}
+	
+	
+	//実際に受信者がいる場合のテスト//////////////////////////////////////////////////////////
+	
 	
 	/**
 	 * 受信者のログが作成されたかどうかをチェックする
 	 */
 	public void testReceivedLogCreate () {
+		if (NOT_FOR_LOCAL) return;
 		setReceiver();
-		messenger.call(TEST_RECEIVER, "testCommand", messenger.JSON_NULL);
+		messenger.call(TEST_RECEIVER, "testCommand");
 		
-		assertTrue(0 < receiver.receiveList.size());
+		
+		String s = receiver.getReceiveLog(0);
 		
 	}
 	
@@ -263,12 +348,14 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * 受信者の受信テスト
 	 */
 	public void testReceivedLogExist () {
+		if (NOT_FOR_LOCAL) return;
 		setReceiver();
-		messenger.call(TEST_RECEIVER, "command", messenger.JSON_NULL);
+		messenger.call(TEST_RECEIVER, "command");
 		
 		String s1 = receiver.getReceiveLog(0);
 		assertTrue(s1.contains("command"));
 	}
+	
 	
 	
 
@@ -303,27 +390,12 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * 
 	 * 
 	 */
-	
-	
-	/*
-	 * 現在のアドレスを使って、メッセンジャーをセットする、
-	 * アドレスが変わるたびに、定期的にリセットする必要がある、、のか？
-	 * ほんとに？
-	 * それってきついな。
-	 * 
-	 * 寿命がURLと同値である、ということは、もちろん、移動しちゃったらまあ効かないという事ですね。
-	 * 
-	 */
-	
-	public void memo () {
-
-	
+	public class ReceiverClass {
+		Debug debug;
+		public ReceiverClass () {
+			debug = new Debug(this);
+		}
 	}
-
-	private class ReceiverClass {
-		
-	}
-
 
 	
 	
