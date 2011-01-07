@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
@@ -12,6 +13,8 @@ import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.Window;
+import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageMasterHub;
+import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEvent;
 import com.kissaki.client.subFrame.debug.Debug;
 import com.kissaki.client.uuidGenerator.UUID;
 
@@ -47,7 +50,9 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 	
 	List <HashMap <String, String>> sendList = null;
 	public List <HashMap <String, String>> receiveList = null;
+	static MessageMasterHub masterHub;
 	
+	static int initializeCount = 0;
 	
 	/**
 	 * コンストラクタ
@@ -58,10 +63,13 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 		this.messengerName = messengerName;
 		this.messengerID = UUID.uuid(8,16);
 		this.invokeObject = invokeObject;
-		
+		masterHub = MessageMasterHub.getMaster();//new MessageMasterHub(getName(), getID(), invokeObject);
 		debug = new Debug(this);
 		
-		setUp(getName(), getID());
+		if (initializeCount == 0) setUpMessaging();
+		initializeCount++;
+		
+		masterHub.setInvokeObject(getName(), getID(), invokeObject);
 	}
 	
 	
@@ -74,29 +82,101 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 		this.messengerName = messengerName;
 		this.messengerID = "CDDED3E3";//UUID.uuid(8,16);
 		this.invokeObject = invokeObject;
+		masterHub = MessageMasterHub.getMaster();//new MessageMasterHub(getName(), getID(), invokeObject);
 		
 		debug = new Debug(this);
-		setUp(getName(), getID());
+		setUpMessaging();
+		masterHub.setInvokeObject(getName(), getID(), invokeObject);
 	}
 	
 	
+	
+	/**
+	 * JSNIへとmtdメソッドのJSオブジェクトを投入し、messageハンドラを初期化する。
+	 */
+	public void setUpMessaging () {
+		setUp(get());
+	}
+	
+	/**
+	 * mtdメソッドをJSOとして値渡しするためのメソッド
+	 * @return
+	 */
+	private native JavaScriptObject get () /*-{
+		return @com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::mtd(Ljava/lang/String;);
+	}-*/;
+	
 
+	/**
+	 * TODO このメソッドから、MasterHubまでがstaticでなくても反応するようにしたい。どうすればいいか。
+	 * 今後の課題
+	 * 
+	 * このメソッドは、staticであるために、
+	 * リスナに関しては最初に誰かがひとつセットすればそれでいい。
+	 * 
+	 * @param e
+	 */
+	public static void mtd(String e) {
+		MessageMasterHub.get(e);//イベントを持っているオブジェクトを起動する
+	}
+	
+	
+	/**
+	 * フィルタ構造
+	 */
+	public void messengerFilter() {
+		debug.trace("messengerFilter_ここにいる");
+	}
 	
 	/**
 	 * セットアップ
 	 * 
 	 * Messengerの初期設定を行う
 	 * Nativeのメッセージ受信部分
-	 * 
-	 * TODO この部分が、staticなメソッドしか引数に取らないのが絶望的。解消せねば、、
 	 */
-	private native void setUp(String messengerName, String messengerID) /*-{
-		this.@com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::log(Ljava/lang/String;)("セットアップ");//com.google.gwt.user.client.Event
-		window.addEventListener('message', 
-			this.@com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::log2(Lcom/google/gwt/user/client/Event;),//ここね。
-			false);//TODO このfalseって何
-		
-//		function receiver(e) {
+	private native void setUp(JavaScriptObject method) /*-{
+		try {
+			if (typeof window.postMessage === "undefined") { 
+	    		alert("残念ですが、あなたのブラウザはメッセージAPIをサポートしていません。このアプリケーションは使えません");
+	    		return;
+			}
+			
+			window.addEventListener('message', func, false);
+			
+			function func (e) {
+				method(e.data);
+			}
+		} catch (er) {
+			alert("er_"+er);
+		}
+	}-*/;
+	
+//	/**
+//	 * セットアップ
+//	 * 
+//	 * Messengerの初期設定を行う
+//	 * Nativeのメッセージ受信部分
+//	 * 
+//	 * TODO この部分が、staticなメソッドしか引数に取らないのが絶望的。解消せねば、、
+//	 */
+//	public native void setUp(String messengerName, String messengerID) /*-{
+//		if (typeof window.postMessage === "undefined") { 
+//    		alert("残念ですが、あなたのブラウザはメッセージAPIをサポートしていません。"); 
+//		}
+//		
+//		//event;
+//		
+//		this.@com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::log(Ljava/lang/String;)("セットアップ");//com.google.gwt.user.client.Event
+//		
+//		
+//		window.addEventListener('message', 
+//			center,
+//			//receiver,
+////			this.@com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::log2(Lcom/google/gwt/user/client/Event;),//ここね。
+//			false);//TODO このfalseって何
+////		window.attachEvent('message', this.@com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::log2(Lcom/google/gwt/user/client/Event;));
+//		
+//		function receiver() {//この書き方だと、内部のメソッドはstaticで無ければ行けない。それは、駄目でしょ。
 ////			if (e.origin == 'http://example.com') {
 ////				if (e.data == 'Hello world') {
 ////					e.source.postMessage('Hello', e.origin);
@@ -105,7 +185,7 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 ////				}
 ////			}
 //		}
-	}-*/;
+//	}-*/;
 	
 
 	
@@ -114,12 +194,7 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 	}
 	
 	
-	public void log2(Event e) {
-		Debug debug2 = new Debug("");
-		debug2.trace("log2_"+e);
-		Window.alert("log2_"+e);
-//		got(e);
-	}
+	
 	
 	private native static void got (Event e) /*-{
 		alert("here");
@@ -127,12 +202,13 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 	
 	/**
 	 * メッセージ受取メソッド
-	 * @param message
+	 * @param event
 	 */
-	private void receiveMessage (String message) {
-		debug.trace("receiveMessage_herecomes");
-		debug.trace("message_"+message);
+	public void receiveMessage (MessageReceivedEvent event) {
+		String rootMessage = event.getMessage();
 		
+		debug.trace("rootMessage_"+rootMessage);
+		String message = "{\"Afooキーと\":\"fooバリューです\"}";
 		
 		JSONObject rootObject = null;
 		String receiverName = null;
@@ -145,7 +221,10 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 			debug.trace("receiveMessage_parseError_"+e);
 		}
 		
-		if (rootObject == null) return;
+		if (rootObject == null) {
+			debug.trace("rootObject = null");
+			return;
+		}
 		
 		receiverName = rootObject.get(KEY_MESSENGER_NAME).isString().toString();
 		if (receiverName == null) return;
@@ -163,7 +242,7 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 		
 		
 		addReceiveLog(receiverName, command);
-		receiveCenter(message);
+		receiveCenter(rootMessage);
 	}
 	
 	
@@ -171,8 +250,7 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 	 * 受信時に実行されるメソッド
 	 */
 	public void receiveCenter(String message) {
-		debug.trace("receiveCenter_受信実行_"+message);
-		((MessengerGWTImplement) getInvokeObject()).receiveCenter(message);
+		((MessengerGWTInterface) getInvokeObject()).receiveCenter(message);
 	}
 	
 	
@@ -289,6 +367,7 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 	 * @return
 	 */
 	private Object getInvokeObject() {
+		debug.trace("invokator_"+invokeObject);
 		return invokeObject;
 	}
 	

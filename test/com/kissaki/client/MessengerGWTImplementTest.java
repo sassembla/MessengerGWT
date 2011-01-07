@@ -4,6 +4,7 @@ import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.junit.client.GWTTestCase;
+import com.google.gwt.user.client.Event;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTImplement;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
 import com.kissaki.client.subFrame.debug.Debug;
@@ -31,7 +32,8 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	public String getModuleName() {
 		return "com.kissaki.MessengerGWT";//パッケージの中で、クライアント/サーバの前+プロジェクトプロジェクト名称(xmlでの読み出しが行われている箇所)
 	}
-
+	
+	
 	/**
 	 * セットアップ
 	 */
@@ -321,6 +323,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	private class ReceiverClass {
 		
 	}
+
 
 	
 	
