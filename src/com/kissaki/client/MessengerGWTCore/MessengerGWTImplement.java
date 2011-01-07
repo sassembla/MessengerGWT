@@ -15,6 +15,7 @@ import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.Window;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageMasterHub;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEvent;
+import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEventHandler;
 import com.kissaki.client.subFrame.debug.Debug;
 import com.kissaki.client.uuidGenerator.UUID;
 
@@ -29,7 +30,7 @@ import com.kissaki.client.uuidGenerator.UUID;
  * 
  * @author ToruInoue
  */
-public class MessengerGWTImplement implements MessengerGWTInterface {
+public class MessengerGWTImplement implements MessageReceivedEventHandler, MessengerGWTInterface {
 	
 	static final String version = "0.5.0";//11/01/05 19:23:28
 	
@@ -69,7 +70,7 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 		if (initializeCount == 0) setUpMessaging();
 		initializeCount++;
 		
-		masterHub.setInvokeObject(getName(), getID(), invokeObject);
+		masterHub.setInvokeObject(getName(), getID(), this);
 	}
 	
 	
@@ -86,7 +87,7 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 		
 		debug = new Debug(this);
 		setUpMessaging();
-		masterHub.setInvokeObject(getName(), getID(), invokeObject);
+		masterHub.setInvokeObject(getName(), getID(), this);
 	}
 	
 	
@@ -200,11 +201,13 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 		alert("here");
 	}-*/;
 	
+	
 	/**
 	 * メッセージ受取メソッド
 	 * @param event
 	 */
-	public void receiveMessage (MessageReceivedEvent event) {
+	@Override
+	public void onMessageReceived(MessageReceivedEvent event) {
 		String rootMessage = event.getMessage();
 		
 		debug.trace("rootMessage_"+rootMessage);
@@ -220,7 +223,7 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 		} catch (Exception e) {
 			debug.trace("receiveMessage_parseError_"+e);
 		}
-		
+		receiveCenter(rootMessage);
 		if (rootObject == null) {
 			debug.trace("rootObject = null");
 			return;
@@ -246,14 +249,12 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 	}
 	
 	
-	/**
-	 * 受信時に実行されるメソッド
-	 */
-	public void receiveCenter(String message) {
-		((MessengerGWTInterface) getInvokeObject()).receiveCenter(message);
+	public void receiveCenter(String rootMessage) {
+		((MessengerGWTInterface) getInvokeObject()).receiveCenter(rootMessage);
 	}
-	
-	
+
+
+		
 
 
 	/**
@@ -523,6 +524,9 @@ public class MessengerGWTImplement implements MessengerGWTInterface {
 	public String getReceiveLog(int i) {
 		return receiveList.get(i).toString();
 	}
+
+
+	
 	
 	
 	

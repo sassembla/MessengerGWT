@@ -28,7 +28,7 @@ import com.google.gwt.user.client.ui.VerticalPanel;
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
  */
-public class MessengerGWT implements EntryPoint, MessageReceivedEventHandler, MessengerGWTInterface {
+public class MessengerGWT implements EntryPoint, MessengerGWTInterface {
 	Debug debug;
 	
 	public MessengerGWT () {
@@ -65,13 +65,7 @@ public class MessengerGWT implements EntryPoint, MessageReceivedEventHandler, Me
 	}
 
 	@Override
-	public void onMessageReceived(MessageReceivedEvent event) {
-		messenger.receiveMessage(event);
-		debug.trace("イベントが到着_"+event.getMessage());
-	}
-
-	@Override
 	public void receiveCenter(String message) {
-		debug.trace("メッセージが届いているよ");
+		debug.trace("メッセージが届いているよ_"+message);
 	}
 }

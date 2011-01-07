@@ -29,7 +29,6 @@ public class MessageChecker implements HasHandlers {
     }
 
     public void newMessageReceived(String message) {
-    	debug.trace("newMessageReceived_"+this+"_"+message);
     	MessageReceivedEvent event = new MessageReceivedEvent(message);
         fireEvent(event);
     }

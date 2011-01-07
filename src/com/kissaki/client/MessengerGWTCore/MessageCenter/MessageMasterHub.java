@@ -48,24 +48,13 @@ public class MessageMasterHub {
 		invokeList.add(invokeObject);
 		checker.addMessageReceivedEventHandler((MessageReceivedEventHandler)invokeObject);
 	}
-	static int count = 0;
+	
 	/**
-	 * この時点で、2つずつ呼ばれている。
-	 * リスナの数だけ、メッセージが増えたような挙動になる。
-	 * という事は、
-	 * ここにくるさらに前に、増える要素が有るんだ。
-	 * 
-	 * 全員宛に拡散するような行動をとる
+	 * メッセージの行使を行う
+	 * ここで、イベントが発行される
 	 * @param message
 	 */
 	public static void get (String message) {
-//		Window.alert("message_"+message);
-//		debug.trace("message_"+message);
-		debug.trace("count_"+count);
-//		for (Iterator<Object> currentInvokeItel = invokeList.iterator(); currentInvokeItel.hasNext();) {
-//			Object currentInvokator = currentInvokeItel.next();
-			checker.newMessageReceived(message);
-//		}
-		count++;
+		checker.newMessageReceived(message);
 	}
 }
