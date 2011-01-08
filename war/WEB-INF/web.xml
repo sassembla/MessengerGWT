@@ -16,6 +16,7 @@
     <url-pattern>/messengergwt/greet</url-pattern>
   </servlet-mapping>
   
+
   <!-- Default page to serve -->
   <welcome-file-list>
     <welcome-file>MessengerGWT.html</welcome-file>

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import com.google.gwt.core.client.JavaScriptObject;
 import com.google.gwt.http.client.URL;
@@ -12,6 +13,7 @@ import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.json.client.JSONString;
+import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.Window;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageMasterHub;
@@ -49,9 +51,10 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	
 	List <JSONObject> sendList = null;
 	List <JSONObject> receiveList = null;
-	static MessageMasterHub masterHub;
+	private static MessageMasterHub masterHub;
 	
 	static int initializeCount = 0;
+	
 	
 	/**
 	 * コンストラクタ
@@ -59,44 +62,31 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * @param string 
 	 */
 	public MessengerGWTImplement (String messengerName, Object invokeObject) {
+		debug = new Debug(this);
+
 		this.messengerName = messengerName;
 		this.messengerID = UUID.uuid(8,16);
 		this.invokeObject = invokeObject;
-		masterHub = MessageMasterHub.getMaster();//new MessageMasterHub(getName(), getID(), invokeObject);
-		debug = new Debug(this);
+		
+		if (masterHub == null) {
+			masterHub = MessageMasterHub.getMaster();
+		}
+		else {
+			debug.trace("not first");
+		}
 		
 		sendList = new ArrayList<JSONObject>();
 		receiveList = new ArrayList<JSONObject>();
 		
-		if (initializeCount == 0) setUpMessaging();
+		if (initializeCount == 0) {
+			debug.trace("initialize");
+			setUpMessaging();
+		}
 		initializeCount++;
+		masterHub.setInvokeObject(invokeObject, this);
 		
-		masterHub.setInvokeObject(getName(), getID(), this);
+		debug.trace("setInvokefinished");
 	}
-	
-	
-	/**
-	 * テスト用のコンストラクタ
-	 * messengerIDを固定している
-	 * @param messengerName
-	 */
-	public MessengerGWTImplement (String messengerName, Object invokeObject, int isTest) {
-		this.messengerName = messengerName;
-		this.messengerID = "CDDED3E3";//UUID.uuid(8,16);
-		this.invokeObject = invokeObject;
-		masterHub = MessageMasterHub.getMaster();//new MessageMasterHub(getName(), getID(), invokeObject);
-		
-		debug = new Debug(this);
-		
-		sendList = new ArrayList<JSONObject>();
-		receiveList = new ArrayList<JSONObject>();
-		
-		if (initializeCount == 0) setUpMessaging();
-		initializeCount++;
-		
-		masterHub.setInvokeObject(getName(), getID(), this);
-	}
-	
 	
 	
 	/**
@@ -125,7 +115,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * @param message
 	 */
 	public static void mtd(String message) {
-		MessageMasterHub.invokeReceive(message);//イベントを持っているオブジェクトを起動する
+		MessageMasterHub.invokeReceive(message);
 	}
 	
 	
@@ -146,17 +136,16 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	private native void setUp(JavaScriptObject method) /*-{
 		try {
 			if (typeof window.postMessage === "undefined") { 
-	    		alert("残念ですが、あなたのブラウザはメッセージAPIをサポートしていません。このアプリケーションは使えません");
-	    		return;
+//	    		alert("残念ですが、あなたのブラウザはメッセージAPIをサポートしていません。このアプリケーションは使えません");
+			} else {
+				window.addEventListener('message', func, false);
 			}
-			
-			window.addEventListener('message', func, false);
 			
 			function func (e) {
 				method(e.data);
 			}
 		} catch (er) {
-			alert("er_"+er);
+			alert("er_"+er);//たぶんそう簡単に発生しない
 		}
 	}-*/;
 	
@@ -197,7 +186,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 
 	/**
 	 * メッセージ受取メソッド
-	 * TODO イベントハンドラで呼ばれている。　イベントに登録したmessenger全てに送られているが、native実装があれば、そんなに頑張らないでいいはず。
+	 * TODO イベントハンドラで呼ばれている。　native実装が来たら、調整する。　イベントに登録したmessenger全てに送られているが、native実装があれば、そんなに頑張らないでいいはず。
 	 * @param event
 	 */
 	@Override
@@ -207,39 +196,57 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 //		debug.trace("rootMessage_"+rootMessage);
 		
 		JSONObject rootObject = null;
+
+		String fromName = null;
+		String fromID = null;
+		
 		String toName = null;
+		
 		String command = null;
 		JSONObject tagValue = null;
 		
 		try {
 			rootObject = JSONParser.parseStrict(rootMessage).isObject();
 		} catch (Exception e) {
-			debug.trace("receiveMessage_parseError_"+e);
+//			debug.trace("receiveMessage_parseError_"+e);
 		}
 		
 		if (rootObject == null) {
-			debug.trace("rootObject = null");
+//			debug.trace("rootObject = null");
+			return;
+		}
+		
+		
+		fromName = removeDoubleQuatation(rootObject.get(KEY_MESSENGER_NAME).isString().toString());
+		if (fromName == null) {
+//			debug.trace("fromName = null");
+			return;
+		}
+		
+		
+		fromID = removeDoubleQuatation(rootObject.get(KEY_MESSENGER_ID).isString().toString());
+		if (fromID == null) {
+//			debug.trace("fromID = null");
 			return;
 		}
 		
 		
 		toName = removeDoubleQuatation(rootObject.get(KEY_TO_NAME).isString().toString());
-		
 		if (toName == null) {
-			debug.trace("receiverName = null");
+//			debug.trace("receiverName = null");
 			return;
 		}
 		
 		if (!toName.equals(getName())) {
-			debug.trace("!receiverName_"+toName+" /vs/ "+getName());
+//			debug.trace("!receiverName_"+toName+" /vs/ "+getName());
 			return;
 		}
 		
 		//宛先の名前と自分の名前が同じ
 		
-		command = rootObject.get(KEY_MESSENGER_EXEC).isString().toString();
+		command = removeDoubleQuatation(rootObject.get(KEY_MESSENGER_EXEC).isString().toString());
 		if (command == null) {
-			debug.trace("command = null");
+//			debug.trace("command = null");
 			return;
 		}
 		
@@ -247,23 +254,26 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 		
 		tagValue = rootObject.get(KEY_MESSENGER_TAGVALUE_GROUP).isObject();
 		if (tagValue == null) {
-			debug.trace("tagValue = null");
+//			debug.trace("tagValue = null");
 			return;
 		}
-		debug.trace("tagValue_"+tagValue);
 		
+//		debug.trace("tagValue_"+tagValue);
 		
-		addReceiveLog(toName, command, tagValue);
+		addReceiveLog(fromName, fromID, toName, command, tagValue);
 		receiveCenter(rootMessage);
 	}
 	
 	
+	
+
+
 	/**
 	 * "文字削り
 	 * @param input
 	 * @return
 	 */
-	private String removeDoubleQuatation (String input) {
+	public String removeDoubleQuatation (String input) {
 		return input.substring(1, input.length()-1);
 	}
 	
@@ -286,7 +296,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * @return
 	 */
 	public JSONObject getMessageObjectPreview (String receiverName, String command, JSONObject ... tagValue) {
-		return getMessageStructure(receiverName, command, tagValue);
+		return getMessageStructure(getName(), getID(), receiverName, command, tagValue);
 	}
 	
 	
@@ -299,7 +309,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 */
 	public void call(String receiverName, String command, JSONObject ... tagValue) {
 		
-		JSONObject messageMap = getMessageStructure(receiverName, command, tagValue);
+		JSONObject messageMap = getMessageStructure(getName(), getID(), receiverName, command, tagValue);
 		
 		String href = Window.Location.getHref();//アドレスが変わったら使えない、張り直しなどの対策が必要なところ。
 		postMessage(messageMap.toString(), href);
@@ -345,7 +355,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	
 	
 	/**
-	 * メッセージ構造を構築する
+	 * 送信メッセージ構造を構築する
 	 * 
 	 * KEY_MESSENGER_NAME:送信者名
 	 * KEY_MESSENGER_ID:送信者ID
@@ -358,14 +368,18 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * @param tagValue
 	 * @return
 	 */
-	private JSONObject getMessageStructure(String receiverName,
+	private JSONObject getMessageStructure(
+			String senderName,
+			String senderID,
+			String receiverName,
 			String command, JSONObject[] tagValue) {
 		JSONObject messageMap = new JSONObject();
 		
-		//HashMap<String, String> messageMap = new HashMap<String, String>();
+//		debug.trace("getName()_"+getName());
+//		debug.trace("getID()_"+getID());
 		
-		messageMap.put(KEY_MESSENGER_NAME, new JSONString(getName()));
-		messageMap.put(KEY_MESSENGER_ID, new JSONString(getID()));
+		messageMap.put(KEY_MESSENGER_NAME, new JSONString(senderName));
+		messageMap.put(KEY_MESSENGER_ID, new JSONString(senderID));
 		messageMap.put(KEY_TO_NAME, new JSONString(receiverName));
 		messageMap.put(KEY_MESSENGER_EXEC, new JSONString(command));
 		
@@ -386,7 +400,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	}
 	
 	
-	
+
 	
 
 	/**
@@ -522,7 +536,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 */
 	public void addSendLog(String receiverName, String command,
 			JSONObject ... tagValue) {
-		JSONObject logMap = getMessageStructure(receiverName, command, tagValue);
+		JSONObject logMap = getMessageStructure(getName(), getID(), receiverName, command, tagValue);
 		
 		sendList.add(logMap);		
 	}
@@ -555,9 +569,9 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * @param receiverName
 	 * @param command
 	 */
-	private void addReceiveLog(String receiverName, String command, JSONObject ... tagValue) {
-//		debug.trace("addReceiveLog_tagValue_"+tagValue);
-		JSONObject logMap = getMessageStructure(receiverName, command, tagValue);
+	private void addReceiveLog(String senderName, String senderID, String toName, String command, JSONObject ... tagValue) {
+
+		JSONObject logMap = getMessageStructure(senderName, senderID, toName, command, tagValue);
 		
 		receiveList.add(logMap);
 	}
@@ -584,20 +598,92 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	
 	
 	/**
-	 * TODO 未実装　終了処理
+	 * メッセージから、メッセージの送信者名を取得する
+	 * @param message
+	 * @return
 	 */
-	public void removeInvoke() {
-		//リスナから外す、、という処理が必要かなあ
+	public String getSenderName(String message) {
+		return removeDoubleQuatation(JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_NAME).isString().toString());
 	}
 
+	/**
+	 * メッセージから、メッセージの送信者のIDを取得する
+	 * @param message
+	 * @return
+	 */
+	public String getSenderID(String message) {
+		return removeDoubleQuatation(JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_ID).isString().toString());
+	}
+	
+	/**
+	 * メッセージから、メッセージコマンドを取得する
+	 * @param message
+	 * @return
+	 */
+	public String getCommand(String message) {
+		return removeDoubleQuatation(JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_EXEC).isString().toString());
+	}
 
+	/**
+	 * バリューをタグから取得する
+	 * 存在しない場合アサーションエラー
+	 * @param message
+	 * @param tag
+	 * @return
+	 */
+	public JSONValue getValueForTag(String message, String tag) {
+		JSONObject obj = JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_TAGVALUE_GROUP).isObject();
+		debug.assertTrue(obj.containsKey(tag), "no-	" + tag + "	-contains");
+		
+		return obj.get(tag);
+	}
+
+	/**
+	 * tagValueグループに含まれるtagをリストとして取得する
+	 * @param message
+	 * @return
+	 */
+	public ArrayList<String> getTags(String message) {
+		JSONObject obj = JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_TAGVALUE_GROUP).isObject();
+		
+		ArrayList<String> tags = new ArrayList<String>();
+		
+		Set<String> currentSet = obj.keySet();
+		
+		for (Iterator<String> currentSetItel = currentSet.iterator(); currentSetItel.hasNext();) {
+			tags.add(currentSetItel.next());
+		}
+		
+		return tags;
+	}
+
+	/**
+	 * tagValueグループに含まれるvalueをリストとして取得する
+	 * @param message
+	 * @return
+	 */
+	public ArrayList<JSONValue> getValues(String message) {
+		JSONObject obj = JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_TAGVALUE_GROUP).isObject();
+		
+		ArrayList<JSONValue> values = new ArrayList<JSONValue>();
+		
+		Set<String> currentSet = obj.keySet();
+		
+		for (Iterator<String> currentSetItel = currentSet.iterator(); currentSetItel.hasNext();) {
+			String currentKey = currentSetItel.next();
+			values.add(obj.get(currentKey));
+		}
+		
+		return values;
+	}
 	
 	
-	
-	
-	
-	
-	
-	
+
+	/**
+	 * 終了処理
+	 */
+	public void removeInvoke(Object root) {
+		masterHub.destractInvocationClassNameList(root);
+	}
 	
 }

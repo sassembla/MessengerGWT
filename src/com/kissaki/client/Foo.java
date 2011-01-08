@@ -17,6 +17,6 @@ public class Foo implements MessengerGWTInterface {
 	
 	@Override
 	public void receiveCenter(String message) {
-		debug.trace("message_"+message);
+		debug.trace("Foooo_receiveCenter_"+message);
 	}
 }

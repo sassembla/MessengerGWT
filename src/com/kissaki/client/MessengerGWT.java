@@ -55,17 +55,17 @@ public class MessengerGWT implements EntryPoint, MessengerGWTInterface {
 	public void onModuleLoad() {
 		Foo foo = new  Foo("A");
 		
-		//Foo foo2 = new Foo("B");
+		Foo foo2 = new Foo("B");
 		
 		messenger = new MessengerGWTImplement("myself", this);
 		
-//		messenger.call(messenger.getName(), "command", messenger.tagValue("キーと", "バリューです"));
-//		messenger.call(messenger.getName(), "command2", messenger.tagValue("キー2と", "バリューです2"));
+		messenger.call(messenger.getName(), "command", messenger.tagValue("キーと", "バリューです"));
+		messenger.call(messenger.getName(), "command2", messenger.tagValue("キー2と", "バリューです2"));
 		
 	}
 
 	@Override
 	public void receiveCenter(String message) {
-		debug.trace("メッセージが届いているよ_"+message);
+		debug.trace("receiveCenter_メッセージが届いているよ_"+message);
 	}
 }
