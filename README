@@ -3,6 +3,26 @@ Connect local No-relational-objects asynchronously.
 Without special setting.
 
 
+SAMPLE CODE:
+//////////////////////////////////////////////////////////////////////////
+public class Foo implements MessengerGWTInterface {
+	MessengerGWTImplement messenger;
+	
+	
+	public Foo (String name) {
+		messenger = new MessengerGWTImplement("fooName", this);
+		messenger.call(messenger.getName(), "fooCommand", messenger.tagValue("fooKey", "fooValue"));
+	}
+	
+	
+	@Override
+	public void receiveCenter(String message) {
+		Window.alert("message_"+message);
+	}
+}
+//////////////////////////////////////////////////////////////////////////
+
+
 VERSION:0.5.0 (alpha release)
 
 
