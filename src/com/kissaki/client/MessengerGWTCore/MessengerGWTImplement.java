@@ -70,8 +70,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 		
 		if (masterHub == null) {
 			masterHub = MessageMasterHub.getMaster();
-		}
-		else {
+		} else {
 			debug.trace("not first");
 		}
 		

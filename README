@@ -1,0 +1,51 @@
+This is library for messaging in GWT that using HTML5-message.
+Connect local No-relational-objects asynchronously.
+Without special setting.
+
+
+VERSION:0.5.0 (alpha release)
+
+
+GOAL:
+	Connect each client without GWT-RPC.
+
+
+
+HOT TO USE:
+	0.Download project.
+
+	1.Copy 1 package "MessengerGWTCore" to your source folder in your GWT-project.
+
+	2.In your class, add implement interface "MessengerGWTInterface".
+
+	3.Implement "public void receiveCenter(String message)" method at same class.
+
+	4.Set "MessengerGWTImplement" instance in same class.
+	e. g. 
+		private MessengerGWTImplement messenger;
+
+	5.Initialize "messenger"
+	e. g.
+		messenger = new MessengerGWTImplement("myName", this);
+
+	6.Make call
+	e. g.
+		messenger.call("myName", "Something happening");
+
+	7.The message will appear into the method "receiveCenter".
+	
+
+
+	If there are meny class that has self-messenger, they can contact each other.
+		When you call "yourName" and then there is some messenger named "yourName",
+		The message will appear in the "receiveCenter" method of"yourName".
+
+
+IN DETAIL:
+now on writing.
+
+
+LICENCE:GNU GPL
+
+
+
