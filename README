@@ -14,7 +14,16 @@ GOAL:
 HOT TO USE:
 	0.Download project.
 
-	1.Copy 1 package "MessengerGWTCore" to your source folder in your GWT-project.
+	1.Copy 3 package to your source folder in your GWT-project.
+	"com.kissaki.client.MessengerGWTCore"
+		- Core module.
+
+	"com.kissaki.client.subFrame.debug"
+		- for System.out.println (& remote debugging)
+
+	"com.kissaki.client.uuidGenerator
+		- for Create uuid in each messenger-instance. 
+		
 
 	2.In your class, add implement interface "MessengerGWTInterface".
 
@@ -41,11 +50,8 @@ HOT TO USE:
 		The message will appear in the "receiveCenter" method of"yourName".
 
 
-IN DETAIL:
+MECHANIZM IN DETAIL:
 now on writing.
 
 
 LICENCE:GNU GPL
-
-
-
