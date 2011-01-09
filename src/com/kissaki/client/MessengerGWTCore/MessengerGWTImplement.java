@@ -35,7 +35,8 @@ import com.kissaki.client.uuidGenerator.UUID;
  */
 public class MessengerGWTImplement implements MessageReceivedEventHandler, MessengerGWTInterface {
 	
-	static final String version = "0.5.0";//11/01/05 19:23:28
+	static final String version = "0.5.1";//11/01/09 20:55:55 String-Value-Bug fixed.
+//		"0.5.0";//11/01/05 19:23:28 Alpha release
 	
 	
 	Debug debug;
@@ -216,21 +217,21 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 		}
 		
 		
-		fromName = removeDoubleQuatation(rootObject.get(KEY_MESSENGER_NAME).isString().toString());
+		fromName = rootObject.get(KEY_MESSENGER_NAME).isString().stringValue();
 		if (fromName == null) {
 //			debug.trace("fromName = null");
 			return;
 		}
 		
 		
-		fromID = removeDoubleQuatation(rootObject.get(KEY_MESSENGER_ID).isString().toString());
+		fromID = rootObject.get(KEY_MESSENGER_ID).isString().stringValue();
 		if (fromID == null) {
 //			debug.trace("fromID = null");
 			return;
 		}
 		
 		
-		toName = removeDoubleQuatation(rootObject.get(KEY_TO_NAME).isString().toString());
+		toName = rootObject.get(KEY_TO_NAME).isString().stringValue();
 		if (toName == null) {
 //			debug.trace("receiverName = null");
 			return;
@@ -243,7 +244,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 		
 		//宛先の名前と自分の名前が同じ
 		
-		command = removeDoubleQuatation(rootObject.get(KEY_MESSENGER_EXEC).isString().toString());
+		command = rootObject.get(KEY_MESSENGER_EXEC).isString().stringValue();
 		if (command == null) {
 //			debug.trace("command = null");
 			return;
@@ -267,16 +268,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	
 
 
-	/**
-	 * "文字削り
-	 * @param input
-	 * @return
-	 */
-	public String removeDoubleQuatation (String input) {
-		return input.substring(1, input.length()-1);
-	}
-	
-	
+
 	/**
 	 * 内部から外部への行使
 	 */
@@ -602,7 +594,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * @return
 	 */
 	public String getSenderName(String message) {
-		return removeDoubleQuatation(JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_NAME).isString().toString());
+		return JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_NAME).isString().stringValue();
 	}
 
 	/**
@@ -611,7 +603,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * @return
 	 */
 	public String getSenderID(String message) {
-		return removeDoubleQuatation(JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_ID).isString().toString());
+		return JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_ID).isString().stringValue();
 	}
 	
 	/**
@@ -620,7 +612,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * @return
 	 */
 	public String getCommand(String message) {
-		return removeDoubleQuatation(JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_EXEC).isString().toString());
+		return JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_EXEC).isString().stringValue();
 	}
 
 	/**

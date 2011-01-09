@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.junit.client.GWTTestCase;
@@ -132,6 +133,30 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	}
 	
 	
+	/**
+	 * 復号テスト
+	 * ""付きのコードを格納した際、ちゃんと復号され、再度変更できるのか。
+	 */
+	public void testEncode () {
+		
+		
+		JSONObject v = new JSONObject();
+		v.put("a", new JSONString("A"));
+		String test = v.toString();
+		
+		JSONObject t = JSONParser.parseStrict(test).isObject();
+		String decoded_A = t.get("a").isString().stringValue();
+		
+		assertEquals("A", decoded_A);
+		
+		JSONObject root1 = messenger.getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, "String"));
+		String s1 = messenger.getValueForTag(root1.toString(), TEST_TAG).isString().stringValue();
+		
+		JSONObject root2 = messenger.getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, s1));
+		String s2 = messenger.getValueForTag(root2.toString(), TEST_TAG).isString().stringValue();
+			
+		assertEquals(s1, s2);
+	}
 
 	
 	/**
@@ -399,7 +424,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		messenger.onMessageReceived(event);
 		String s = messenger.getReceiveLog(0);
-		String tagValue1 = messenger.removeDoubleQuatation(messenger.getValueForTag(s, TEST_TAG).isString().toString());//isString, isObject, isArray, isNumber, isBoolean　とかが入るので、こんな感じ。
+		String tagValue1 = messenger.getValueForTag(s, TEST_TAG).isString().stringValue();//isString, isObject, isArray, isNumber, isBoolean　とかが入るので、こんな感じ。
 		assertEquals(TEST_VALUE, tagValue1);
 	}
 	
@@ -434,7 +459,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		ArrayList<JSONValue> values = messenger.getValues(s);
 		
 		assertEquals(1, values.size());
-		assertEquals(TEST_VALUE, messenger.removeDoubleQuatation(values.get(0).isString().toString()));
+		assertEquals(TEST_VALUE, values.get(0).isString().stringValue());
 	}
 	
 	
