@@ -462,6 +462,37 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		assertEquals(TEST_VALUE, values.get(0).isString().stringValue());
 	}
 	
+	/**
+	 * 受信したメッセージを、宛先変更とcommand変更のみで再送する機能のテスト
+	 */
+	public void testCopyOut () {
+		setReceiver();
+		String message = rec.getMessengerForTesting().getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+		MessageReceivedEvent event = new MessageReceivedEvent(message);
+		
+		String eventString = event.getMessage();
+		
+		//受け取った
+		messenger.onMessageReceived(event);
+		String s = messenger.getReceiveLog(0);
+		
+		
+		//で、受け取ったメッセージをコピーしたとする
+		String coppiedMessage = rec.getMessengerForTesting().copyOut(TEST_MYNAME, TEST_COMMAND, eventString);
+		MessageReceivedEvent coppiedEvent = new MessageReceivedEvent(coppiedMessage);
+		
+		
+		messenger.onMessageReceived(coppiedEvent);
+		assertTrue(messenger.getReceiveLogSize() == 2);
+		String coppiedS = messenger.getReceiveLog(1);
+		
+		//ログが一致する筈
+		assertEquals(s, coppiedS);
+		
+	}
+	
+	
+	
 	
 	//実際に受信者がいる場合のテスト//////////////////////////////////////////////////////////
 	

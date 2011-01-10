@@ -119,12 +119,6 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	}
 	
 	
-	/**
-	 * フィルタ構造
-	 */
-	public void messengerFilter() {
-		debug.trace("messengerFilter_ここにいる");
-	}
 	
 	
 	/**
@@ -319,6 +313,19 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 		JSONObject [] tagValue = new JSONObject [0];//長さ0の配列としてセット、中身は空
 		call(receiverName, command, tagValue);
 	}
+	
+	/**
+	 * 入力されたメッセージを元に、宛先とコマンドを変更して発信する
+	 * @param receiverName
+	 * @param command
+	 * @param eventString
+	 * @return
+	 */
+	public String copyOut(String receiverName, String command, String eventString) {
+		debug.assertTrue(false, "not yet finished");
+		return null;
+	}
+	
 	
 	/**
 	 * 秘匿されるべき関数
@@ -676,5 +683,8 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	public void removeInvoke(Object root) {
 		masterHub.destractInvocationClassNameList(root);
 	}
+
+
+	
 	
 }
