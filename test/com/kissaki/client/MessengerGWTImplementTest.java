@@ -488,7 +488,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		//ログが一致する筈
 		assertEquals(s, coppiedS);
-		
 	}
 	
 	

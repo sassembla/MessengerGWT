@@ -321,12 +321,60 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * @param eventString
 	 * @return
 	 */
-	public String copyOut(String receiverName, String command, String eventString) {
-		debug.assertTrue(false, "not yet finished");
-		return null;
+	public String copyOut(String newReceiverName, String newCommand, String eventString) {
+		//内容チェックを行い、receiverとcommandを書き換える
+		debug.assertTrue(newReceiverName != null, "newReceiverName = null");
+		debug.assertTrue(newCommand != null, "newCommand = null");
+		debug.assertTrue(eventString != null, "eventString = null");
+		
+		JSONObject eventObj = JSONParser.parseStrict(eventString).isObject();
+		/*
+		 * eventString_
+		 * {
+		 * 	"MESSENGER_messengerName":"receiver", 
+		 * 	"MESSENGER_messengerID":"342E1E5C", 
+		 * 	"MESSENGER_to":"sender", 
+		 * 	"MESSENGER_exec":"testCommand", 
+		 * 	"MESSENGER_tagValue":{"tag1":"value1"}
+		 * }
+		 */
+		debug.assertTrue(eventObj.containsKey(KEY_MESSENGER_NAME), "not contain KEY_MESSENGER_NAME");
+		debug.assertTrue(eventObj.containsKey(KEY_MESSENGER_ID), "not contain KEY_MESSENGER_ID");
+		debug.assertTrue(eventObj.containsKey(KEY_MESSENGER_EXEC), "not contain KEY_MESSENGER_EXEC");
+		debug.assertTrue(eventObj.containsKey(KEY_TO_NAME), "not contain KEY_TO_NAME");
+		debug.assertTrue(eventObj.containsKey(KEY_MESSENGER_TAGVALUE_GROUP), "not contain KEY_MESSENGER_TAGVALUE_GROUP");
+		return replaceSenderInformation(getName(), getID(), newReceiverName, newCommand, eventObj).toString();
 	}
 	
 	
+	private JSONObject getJSONObject(String eventString) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	/**
+	 * 送信者情報を特定のものに変更する
+	 * @param name
+	 * @param id
+	 * @param newCommand 
+	 * @param newReceiverName 
+	 * @param eventObj
+	 */
+	private JSONObject replaceSenderInformation(String name, String id,
+			String newReceiverName, String newCommand, JSONObject eventObj) {
+		JSONObject newObject = new JSONObject();
+		
+		newObject.put(KEY_MESSENGER_NAME, new JSONString(name));
+		newObject.put(KEY_MESSENGER_ID, new JSONString(id));
+		newObject.put(KEY_TO_NAME, new JSONString(newReceiverName));
+		newObject.put(KEY_MESSENGER_EXEC, new JSONString(newCommand));
+		newObject.put(KEY_MESSENGER_TAGVALUE_GROUP, eventObj.get(KEY_MESSENGER_TAGVALUE_GROUP));
+		
+		return newObject;
+	}
+
+
+
 	/**
 	 * 秘匿されるべき関数
 	 * 

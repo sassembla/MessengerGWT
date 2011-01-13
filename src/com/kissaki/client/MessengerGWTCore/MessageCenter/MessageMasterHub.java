@@ -53,6 +53,9 @@ public class MessageMasterHub {
 	 * 	Class A x 2 → 一つのメッセージが発生すると、インスタンス一つにつき2つのメッセージが送られてしまう。
 	 * 	Eventの構造の問題だと思われる。登録数分だけ、同様のクラスに向けて発行されてしまう。
 	 * 	
+	 * 続き_11/01/13 20:29:49
+	 * 通常のクラスについては、上記現象が発生しなかった。テストを書き換える必要がある。
+	 * 
 	 * @param name
 	 * @param id
 	 * @param invokeObject
@@ -60,13 +63,14 @@ public class MessageMasterHub {
 	 */
 	public void setInvokeObject(Object root, Object messengerSelf) {
 		
-		if (invocationClassNameList.contains(root.getClass().toString())) {//すでに同名のクラスが登録されていたら、登録しない。
-			debug.trace("already added_"+root.getClass());//JSの特例、同クラスの別インスタンスの所持するメソッドの区別が無い証、、、
-		} else {
-			invocationClassNameList.add(root.getClass().toString());
-			debug.trace("just added_"+root.getClass().toString());
-			checker.addMessageReceivedEventHandler((MessageReceivedEventHandler)messengerSelf);
-		}
+//		if (invocationClassNameList.contains(root.getClass().toString())) {//すでに同名のクラスが登録されていたら、登録しない。
+//			debug.trace("already added_"+root.getClass());//JSの特例、同クラスの別インスタンスの所持するメソッドの区別が無い証、、、
+//		} else {
+//			invocationClassNameList.add(root.getClass().toString());
+//			debug.trace("just added_"+root.getClass().toString());
+//			checker.addMessageReceivedEventHandler((MessageReceivedEventHandler)messengerSelf);
+//		}
+		checker.addMessageReceivedEventHandler((MessageReceivedEventHandler)messengerSelf);
 		
 	}
 	
