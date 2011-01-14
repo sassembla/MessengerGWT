@@ -2,6 +2,8 @@ package com.kissaki.client;
 
 import java.util.ArrayList;
 
+import com.google.gwt.dev.json.JsonArray;
+import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
@@ -111,6 +113,10 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		JSONObject obj = new JSONObject();
 		obj.put("valOf5", new JSONNumber(5));
 			
+		JSONArray jArray = new JSONArray();
+		jArray.set(0, new JSONString("array1"));
+		jArray.set(1, new JSONString("array2"));
+		
 		
 		JSONObject sInt = messenger.tagValue("キーInt", 1);//JSONNumber
 		assertEquals("{\"キーInt\":1}", sInt.toString());
@@ -124,12 +130,17 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		assertEquals("{\"キーString\":\"val3\"}", sString.toString());
 		
 		
-		JSONObject sArray = messenger.tagValue("キーArray", array);//JSONArray
+		JSONObject sArray = messenger.tagValue("キーArray", array);//JSONObject-Array
 		assertEquals("{\"キーArray\":[{\"string\":\"a\"},{\"number\":100}]}", sArray.toString());
 	
 		
 		JSONObject sObj = messenger.tagValue("キーObj", obj);//JSONObject
 		assertEquals("{\"キーObj\":{\"valOf5\":5}}", sObj.toString());
+		
+		
+		JSONObject jArrayObject = messenger.tagValue("キーjArray", jArray);//JSONArray
+		assertEquals("{\"キーjArray\":[\"array1\",\"array2\"]}", jArrayObject.toString());
+		
 	}
 	
 	

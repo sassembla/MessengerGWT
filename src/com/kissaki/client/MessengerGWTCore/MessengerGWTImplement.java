@@ -531,7 +531,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 
 
 	/**
-	 * Array
+	 * JSONObject-Array
 	 * 
 	 * タグバリュー型のJSONObjectを生成する
 	 * @param key
@@ -562,6 +562,20 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * @return
 	 */
 	public JSONObject tagValue(String key, JSONObject value) {
+		JSONObject jsonObj = new JSONObject();
+		jsonObj.put(key, value);
+		return jsonObj;
+	}
+	
+	/**
+	 * JSONArray
+	 * 
+	 * タグバリュー型のJSONObjectを生成する
+	 * @param key
+	 * @param value
+	 * @return
+	 */
+	public JSONObject tagValue(String key, JSONArray value) {
 		JSONObject jsonObj = new JSONObject();
 		jsonObj.put(key, value);
 		return jsonObj;
