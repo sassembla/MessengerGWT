@@ -11,6 +11,7 @@ import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.junit.client.GWTTestCase;
 import com.google.gwt.user.client.Event;
+import com.google.gwt.user.client.Timer;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTImplement;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEvent;
@@ -29,7 +30,9 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	String TEST_TAG = "tag1";
 	String TEST_VALUE = "value1";
 	
-	boolean NOT_FOR_LOCAL = true;
+	int INTERVAL_TIMEOUT_MS = 500;
+	int INTERVAL_FPS = 10;
+	
 	
 	/**
 	 * コンストラクタ
@@ -69,20 +72,23 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	/*
 	 * 仮のレシーバー
 	 */
-	
 	ReceiverClass rec;
 	private void setReceiver () {
-		 rec = new ReceiverClass();
+		 rec = new ReceiverClass(TEST_RECEIVER);
 	}
 	
 	/**
-	 * 上書きしたメソッド、メッセージ受信時に呼ばれる筈。
+	 * メッセージ受信時に呼ばれるメソッド
 	 */
 	@Override
 	public void receiveCenter(String message) {
 		
 	}
 	
+	public void testGetMessengerStatus () {
+		int i = messenger.getMessengerStatus();
+		debug.trace("status_"+i);
+	}
 	
 	/**
 	 * 送信者の名前チェック
@@ -161,38 +167,183 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		assertEquals("A", decoded_A);
 		
 		JSONObject root1 = messenger.getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, "String"));
-		String s1 = messenger.getValueForTag(root1.toString(), TEST_TAG).isString().stringValue();
+		String s1 = messenger.getValueForTag(TEST_TAG, root1.toString()).isString().stringValue();
 		
 		JSONObject root2 = messenger.getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, s1));
-		String s2 = messenger.getValueForTag(root2.toString(), TEST_TAG).isString().stringValue();
+		String s2 = messenger.getValueForTag(TEST_TAG, root2.toString()).isString().stringValue();
 			
 		assertEquals(s1, s2);
 	}
 
 	
 	/**
-	 * 一つのタグがある場合の出力テスト
-	 * 
+	 * 送信ログ上での内容一致テスト
 	 */
-	public void testSingleTagInput () {
-		if (NOT_FOR_LOCAL) return;
-		messenger.call(TEST_RECEIVER, TEST_COMMAND, //この時点でロックして、ただしテストはteardownする。
+	public void testSendInput () {
+		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
+			debug.trace("test_abort_testSendInput_"+messenger.getMessengerStatus());
+			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
+			return;
+		}
+		
+		messenger.call(TEST_RECEIVER, TEST_COMMAND,
 			messenger.tagValue(TEST_TAG, "1")
 		);
-		String s = messenger.getSendLog(0);
-		String expect = "{MESSENGER_exec=TestCommand, MESSENGER_messengerID=CDDED3E3, MESSENGER_tagValue={\"キー1\":\"1\"}, MESSENGER_messengerName=sender, MESSENGER_to=receiver}";
-		assertEquals(expect, s);
+		
+		
+		String sendMessage = messenger.getSendLog(0);
+		String actualCommand = messenger.getCommand(sendMessage);
+		assertEquals(TEST_COMMAND, actualCommand);
+		
+		String actualSenderName = messenger.getSenderName(sendMessage);
+		assertEquals(messenger.getName(), actualSenderName);
+		
+		String actualSenderID = messenger.getSenderID(sendMessage);
+		assertEquals(messenger.getID(), actualSenderID);
+		
+		
+	}
+	
+	/**
+	 * 受信ログ上での内容一致テスト
+	 */
+	public void testReceiveInput () {
+		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
+			debug.trace("test_abort_testReceiveInput_"+messenger.getMessengerStatus());
+			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
+			return;
+		}
+		
+		setReceiver();
+		
+		messenger.call(TEST_RECEIVER, TEST_COMMAND,
+			messenger.tagValue(TEST_TAG, "1")
+		);
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+					cancel();
+					
+					//到達したら
+					String receiveMessage = rec.getMessengerForTesting().getReceiveLog(0);
+					String actualCommand = messenger.getCommand(receiveMessage);
+					assertEquals(TEST_COMMAND, actualCommand);
+					
+					String actualSenderName = messenger.getSenderName(receiveMessage);
+					assertEquals(messenger.getName(), actualSenderName);
+					
+					String actualSenderID = messenger.getSenderID(receiveMessage);
+					assertEquals(messenger.getID(), actualSenderID);
+					
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+		
 	}
 	
 	
 	
 	
 	/**
-	 * 複数のタグがある場合の出力テスト
-	 * 
+	 * 一つのタグがある場合の送信ログ上での内容一致テスト
 	 */
-	public void testMultiTagInput () {
-		if (NOT_FOR_LOCAL) return;
+	public void testSendSingleTagInput () {
+		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
+			debug.trace("test_abort_testSendSingleTagInput_"+messenger.getMessengerStatus());
+			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
+			return;
+		}
+		
+		messenger.call(TEST_RECEIVER, TEST_COMMAND,
+			messenger.tagValue(TEST_TAG, "1")
+		);
+		
+		
+		String sendMessage = messenger.getSendLog(0);
+		String actualCommand = messenger.getCommand(sendMessage);
+		assertEquals(TEST_COMMAND, actualCommand);
+		
+		String actualSenderName = messenger.getSenderName(sendMessage);
+		assertEquals(messenger.getName(), actualSenderName);
+		
+		String actualSenderID = messenger.getSenderID(sendMessage);
+		assertEquals(messenger.getID(), actualSenderID);
+		
+		JSONValue actualTagValue = messenger.getValueForTag(TEST_TAG, sendMessage);
+		assertTrue(actualTagValue.isString() != null);
+		assertEquals("1", actualTagValue.isString().stringValue());
+		
+	}
+	
+	/**
+	 * 一つのタグがある場合の受信ログ上での内容一致テスト
+	 */
+	public void testReceiveSingleTagInput () {
+		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
+			debug.trace("test_abort_testReceiveSingleTagInput_"+messenger.getMessengerStatus());
+			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
+			return;
+		}
+		
+		setReceiver();
+		
+		messenger.call(TEST_RECEIVER, TEST_COMMAND,
+			messenger.tagValue(TEST_TAG, "1")
+		);
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+					cancel();
+					
+					//到達したら
+					String receiveMessage = rec.getMessengerForTesting().getReceiveLog(0);
+					String actualCommand = messenger.getCommand(receiveMessage);
+					assertEquals(TEST_COMMAND, actualCommand);
+					
+					String actualSenderName = messenger.getSenderName(receiveMessage);
+					assertEquals(messenger.getName(), actualSenderName);
+					
+					String actualSenderID = messenger.getSenderID(receiveMessage);
+					assertEquals(messenger.getID(), actualSenderID);
+					
+					JSONValue actualTagValue = messenger.getValueForTag(TEST_TAG, receiveMessage);
+					assertTrue(actualTagValue.isString() != null);
+					assertEquals("1", actualTagValue.isString().stringValue());
+					
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+		
+	}
+	
+	
+	
+	
+	/**
+	 * 複数のタグがある場合の送信ログ上での内容一致テスト
+	 */
+	public void testSendMultiTagInput () {
+		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
+			debug.trace("test_abort_testSendMultiTagInput_"+messenger.getMessengerStatus());
+			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
+			
+			return;
+		}
+		
 		messenger.call(TEST_RECEIVER, TEST_COMMAND, 
 			messenger.tagValue(TEST_TAG, 1),//JSONNumber
 			messenger.tagValue("キー2", 2),//JSONNumber
@@ -200,11 +351,84 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 			messenger.tagValue("キー4", 4)//JSONNumber
 		);
 		
-		String expected = "{MESSENGER_exec=TestCommand, MESSENGER_messengerID=CDDED3E3, MESSENGER_tagValue={\""+ TEST_TAG +"\":1, \"キー2\":2, \"キー3\":3, \"キー4\":4}, MESSENGER_messengerName=sender, MESSENGER_to=receiver}";
-		String actual = messenger.getSendLog(0);
-		debug.trace("actual_"+actual);
-		assertEquals(expected, actual);
+		String sendMessage = messenger.getSendLog(0);
+		
+		JSONValue actualTagValue1 = messenger.getValueForTag(TEST_TAG, sendMessage);
+		assertTrue(actualTagValue1.isNumber() != null);
+		assertEquals(1, (int)actualTagValue1.isNumber().doubleValue());
+		
+		JSONValue actualTagValue2 = messenger.getValueForTag("キー2", sendMessage);
+		assertTrue(actualTagValue2.isNumber() != null);
+		assertEquals(2, (int)actualTagValue2.isNumber().doubleValue());
+		
+		JSONValue actualTagValue3 = messenger.getValueForTag("キー3", sendMessage);
+		assertTrue(actualTagValue3.isNumber() != null);
+		assertEquals(3, (int)actualTagValue3.isNumber().doubleValue());
+		
+		JSONValue actualTagValue4 = messenger.getValueForTag("キー4", sendMessage);
+		assertTrue(actualTagValue4.isNumber() != null);
+		assertEquals(4, (int)actualTagValue4.isNumber().doubleValue());
+		
 	}
+	
+	/**
+	 * 複数のタグがある場合の受信ログ上での内容一致テスト
+	 */
+	public void testReceiveMultiTagInput () {
+		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
+			debug.trace("test_abort_testReceiveMultiTagInput_"+messenger.getMessengerStatus());
+			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
+			
+			return;
+		}
+		
+		setReceiver();
+		
+		messenger.call(TEST_RECEIVER, TEST_COMMAND, 
+			messenger.tagValue(TEST_TAG, 1),//JSONNumber
+			messenger.tagValue("キー2", 2),//JSONNumber
+			messenger.tagValue("キー3", 3),//JSONNumber
+			messenger.tagValue("キー4", 4)//JSONNumber
+		);
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+					cancel();
+					
+					//到達したら
+					String receiveMessage = rec.getMessengerForTesting().getReceiveLog(0);
+					JSONValue actualTagValue1 = messenger.getValueForTag(TEST_TAG, receiveMessage);
+					assertTrue(actualTagValue1.isNumber() != null);
+					assertEquals(1, (int)actualTagValue1.isNumber().doubleValue());
+					
+					JSONValue actualTagValue2 = messenger.getValueForTag("キー2", receiveMessage);
+					assertTrue(actualTagValue2.isNumber() != null);
+					assertEquals(2, (int)actualTagValue2.isNumber().doubleValue());
+					
+					JSONValue actualTagValue3 = messenger.getValueForTag("キー3", receiveMessage);
+					assertTrue(actualTagValue3.isNumber() != null);
+					assertEquals(3, (int)actualTagValue3.isNumber().doubleValue());
+					
+					JSONValue actualTagValue4 = messenger.getValueForTag("キー4", receiveMessage);
+					assertTrue(actualTagValue4.isNumber() != null);
+					assertEquals(4, (int)actualTagValue4.isNumber().doubleValue());
+					
+					
+					
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+		debug.trace("test_abort_testReceiveMultiTagInput_到達してる");
+	}
+	
+	
 	
 	
 	
@@ -235,6 +459,14 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * Callのテスト
 	 */
 	public void testCreateCallMethod () {
+		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
+			debug.trace("test_abort_testCreateCallMethod_"+messenger.getMessengerStatus());
+			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
+			
+			return;
+		}
+		
+		
 		JSONObject string = new JSONObject();
 		string.put("string", new JSONString("a"));
 		
@@ -251,7 +483,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		JSONObject obj = new JSONObject();
 		obj.put("valOf5", new JSONNumber(5));
 		
-		if (NOT_FOR_LOCAL) return;
+		
 		messenger.call(TEST_RECEIVER, TEST_COMMAND,
 			messenger.tagValue(TEST_TAG, 1),//JSONNumber
 			messenger.tagValue("キー2", 2.222),//JSONNumber
@@ -278,7 +510,13 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * 送信者のコマンド生成チェック
 	 */
 	public void testCommandCreate () {
-		if (NOT_FOR_LOCAL) return;
+		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
+			debug.trace("test_abort_getMessengerStatus_"+messenger.getMessengerStatus());
+			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
+			
+			return;
+		}
+		
 		messenger.call(TEST_RECEIVER, TEST_COMMAND);
 		
 		//送信記録
@@ -371,6 +609,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * 受信したメッセージの送信者名を取得するメソッドの内容チェック
 	 */
 	public void testCheckSenderName () {
+		
 		setReceiver();
 		String message = rec.getMessengerForTesting().getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
 		debug.trace("name_message_"+message);
@@ -435,7 +674,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		messenger.onMessageReceived(event);
 		String s = messenger.getReceiveLog(0);
-		String tagValue1 = messenger.getValueForTag(s, TEST_TAG).isString().stringValue();//isString, isObject, isArray, isNumber, isBoolean　とかが入るので、こんな感じ。
+		String tagValue1 = messenger.getValueForTag(TEST_TAG, s).isString().stringValue();//isString, isObject, isArray, isNumber, isBoolean　とかが入るので、こんな感じ。
 		assertEquals(TEST_VALUE, tagValue1);
 	}
 	
@@ -511,31 +750,91 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * 受信者のログが作成されたかどうかをチェックする
 	 */
 	public void testReceivedLogCreate () {
-		if (NOT_FOR_LOCAL) return;
+		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
+			debug.trace("test_abort_testReceivedLogCreate_"+messenger.getMessengerStatus());
+			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
+			
+			return;
+		}
+		
 		setReceiver();
+		
 		messenger.call(TEST_RECEIVER, "testCommand");
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
 		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+					cancel();
+					
+					assertEquals(1, rec.getMessengerForTesting().getReceiveLogSize());
+					
+					finishTest();
+				}
+			}
+		};
 		
-		String s = rec.getMessengerForTesting().getReceiveLog(0);
-		
+		timer.scheduleRepeating(INTERVAL_FPS);
 	}
 	
 	
 	/**
-	 * 受信者の受信テスト
+	 * 受信者の受信内容テスト
 	 */
 	public void testReceivedLogExist () {
-		if (NOT_FOR_LOCAL) return;
+		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
+			debug.trace("test_abort_testReceivedLogExist_"+messenger.getMessengerStatus());
+			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
+			
+			return;
+		}
+		
 		setReceiver();
+		
 		messenger.call(TEST_RECEIVER, "command");
 		
-		String s1 = rec.getMessengerForTesting().getReceiveLog(0);
-		assertTrue(s1.contains("command"));
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+					cancel();
+					
+					String s1 = rec.getMessengerForTesting().getReceiveLog(0);
+					assertTrue(s1.contains("command"));
+					
+					
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
 	}
 	
 	
-	
-
+	/**
+	 * 同期(受取手の不在か、存在した場合受取手のロック解除が確認されるまでロックする)メソッドのテスト
+	 * なんか再帰しそう。
+	 */
+	public void testSyncCall() {
+		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
+			debug.trace("test_abort_testSyncCall_"+messenger.getMessengerStatus());
+			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
+			
+			return;
+		}
+		
+		setReceiver();
+		
+		messenger.syncCall(TEST_RECEIVER, "command");
+		
+		String s1 = rec.getMessengerForTesting().getReceiveLog(0);
+		assertTrue(s1.contains("command"));
+		
+	}
 	
 	
 
@@ -565,27 +864,10 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * テストログの充実
 	 * 	→ログでチェックする事になると思う
 	 * 
+	 * 同期バージョンのテスト
 	 * 
 	 */
-	public class ReceiverClass implements MessengerGWTInterface {
-		Debug debug;
-		MessengerGWTImplement receiver;
-		
-		public ReceiverClass () {
-			debug = new Debug(this);
-			receiver = new MessengerGWTImplement(TEST_RECEIVER, this);
-		}
-		
-		public MessengerGWTImplement getMessengerForTesting () {
-			return receiver;
-		}
-		
-		
-		@Override
-		public void receiveCenter(String message) {
-			
-		}
-	}
+	
 
 	
 	

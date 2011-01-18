@@ -10,5 +10,13 @@ package com.kissaki.client.MessengerGWTCore;
  *
  */
 public interface MessengerGWTInterface {
+	final int MESSENGER_STATUS_NULL = 0;
+	final int MESSENGER_STATUS_READY_FOR_INITIALIZE = 1;
+	final int MESSENGER_STATUS_OK = 2;
+	final int MESSENGER_STATUS_REMOVED = 3;
+	
+	final int MESSENGER_STATUS_NOT_SUPPORTED = -1;
+	final int MESSENGER_STATUS_FAILURE = -2;
+	
 	abstract void receiveCenter(String message);
 }

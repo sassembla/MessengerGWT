@@ -1,24 +1,22 @@
 package com.kissaki.client.MessengerGWTCore;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import com.google.gwt.core.client.JavaScriptObject;
-import com.google.gwt.http.client.URL;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
-import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.Window;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageMasterHub;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEvent;
-import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEventHandler;
+//import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEventHandler;
+import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedHandler;
 import com.kissaki.client.subFrame.debug.Debug;
 import com.kissaki.client.uuidGenerator.UUID;
 
@@ -28,18 +26,22 @@ import com.kissaki.client.uuidGenerator.UUID;
  * 
  * Obj-C版の実装から、親子関係を取り除いたバージョン
  * 
+ * -任意時間での遅延実行：製作中
  * -クライアント間の通信：未作成
  * -クライアント-サーバ感の通信：未作成
  * 
  * @author ToruInoue
  */
-public class MessengerGWTImplement implements MessageReceivedEventHandler, MessengerGWTInterface {
+public class MessengerGWTImplement extends MessageReceivedHandler implements MessengerGWTInterface {
 	
-	static final String version = "0.5.1";//11/01/09 20:55:55 String-Value-Bug fixed.
+	static final String version = "0.7.0";//Beta release
+//		"0.5.2";//11/01/18 16:41:28 changed to EventBus from HasHandlers(Duplicated) 
+//		"0.5.1";//11/01/09 20:55:55 String-Value-Bug fixed.
 //		"0.5.0";//11/01/05 19:23:28 Alpha release
 	
 	
 	Debug debug;
+	
 	public final String messengerName;
 	public final String messengerID;
 	public final Object invokeObject;
@@ -54,7 +56,6 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	List <JSONObject> receiveList = null;
 	private static MessageMasterHub masterHub;
 	
-	static int initializeCount = 0;
 	
 	
 	/**
@@ -78,11 +79,11 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 		sendList = new ArrayList<JSONObject>();
 		receiveList = new ArrayList<JSONObject>();
 		
-		if (initializeCount == 0) {
+		if (masterHub.getMessengerGlobalStatus() == MESSENGER_STATUS_READY_FOR_INITIALIZE) {
 			debug.trace("initialize");
-			setUpMessaging();
+			setUpMessaging(masterHub);
 		}
-		initializeCount++;
+		
 		masterHub.setInvokeObject(invokeObject, this);
 		
 		debug.trace("setInvokefinished");
@@ -91,9 +92,12 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	
 	/**
 	 * JSNIへとmtdメソッドのJSオブジェクトを投入し、messageハンドラを初期化する。
+	 * @param globalMasterHub 
 	 */
-	public void setUpMessaging () {
-		setUp(get());
+	public void setUpMessaging (MessageMasterHub globalMasterHub) {
+		int status = setUp(get());//Javaのメソッドのポインタ渡しが実現されている。
+		debug.assertTrue(globalMasterHub.getMessengerGlobalStatus() == MESSENGER_STATUS_READY_FOR_INITIALIZE, "already initialized");
+		globalMasterHub.setMessengerGlobalStatus(status);
 	}
 	
 	/**
@@ -127,10 +131,11 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * Messengerの初期設定を行う
 	 * Nativeのメッセージ受信部分
 	 */
-	private native void setUp(JavaScriptObject method) /*-{
+	private native int setUp(JavaScriptObject method) /*-{
 		try {
 			if (typeof window.postMessage === "undefined") { 
-//	    		alert("残念ですが、あなたのブラウザはメッセージAPIをサポートしていません。このアプリケーションは使えません");
+	    		alert("残念ですが、あなたのブラウザはpostMessage APIをサポートしていません。");
+	    		return @com.kissaki.client.MessengerGWTCore.MessengerGWTInterface::MESSENGER_STATUS_NOT_SUPPORTED;
 			} else {
 				window.addEventListener('message', func, false);
 			}
@@ -138,8 +143,11 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 			function func (e) {
 				method(e.data);
 			}
+			
+			return @com.kissaki.client.MessengerGWTCore.MessengerGWTInterface::MESSENGER_STATUS_OK;
 		} catch (er) {
-			alert("er_"+er);//たぶんそう簡単に発生しない
+			alert("messenger_undefined_error_"+er);//たぶんそう簡単に発生しない
+			return @com.kissaki.client.MessengerGWTCore.MessengerGWTInterface::MESSENGER_STATUS_FAILURE;
 		}
 	}-*/;
 	
@@ -274,7 +282,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 		
 
 	/**
-	 * 送付前のメッセージをプレビュー取得するメソッド
+	 * 送付前のメッセージのプレビューを取得するメソッド
 	 * @param receiverName
 	 * @param command
 	 * @param tagValue
@@ -287,7 +295,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	
 	
 	/**
-	 * メッセージ送信メソッド
+	 * vメッセージ送信メソッド
 	 * @param receiverName
 	 * @param command
 	 * @param tagValue
@@ -304,7 +312,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	
 	
 	/**
-	 * メッセージ送信メソッド、
+	 * 非同期メッセージ送信メソッド、
 	 * tagValueが無いバージョン
 	 * @param receiverName
 	 * @param command
@@ -346,11 +354,7 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 		return replaceSenderInformation(getName(), getID(), newReceiverName, newCommand, eventObj).toString();
 	}
 	
-	
-	private JSONObject getJSONObject(String eventString) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+
 
 	/**
 	 * 送信者情報を特定のものに変更する
@@ -691,13 +695,13 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	 * @param tag
 	 * @return
 	 */
-	public JSONValue getValueForTag(String message, String tag) {
+	public JSONValue getValueForTag(String tag, String message) {
 		JSONObject obj = JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_TAGVALUE_GROUP).isObject();
 		debug.assertTrue(obj.containsKey(tag), "no-	" + tag + "	-contains");
 		
 		return obj.get(tag);
 	}
-
+	
 	/**
 	 * tagValueグループに含まれるtagをリストとして取得する
 	 * @param message
@@ -738,15 +742,55 @@ public class MessengerGWTImplement implements MessageReceivedEventHandler, Messe
 	}
 	
 	
+	
+	
+	
+	/**
+	 * @return the messengerStatus
+	 */
+	public int getMessengerStatus() {
+		return masterHub.getMessengerGlobalStatus();
+	}
+
+
+	
+
 
 	/**
 	 * 終了処理
 	 */
 	public void removeInvoke(Object root) {
+		//setMessengerStatus(MESSENGER_STATUS_REMOVED);
 		masterHub.destractInvocationClassNameList(root);
 	}
 
-
 	
-	
+	/**
+	 * テスト中 now under testing.
+	 * 
+	 * 同期call
+	 * tagValue無し
+	 * @param receiverName
+	 * @param command
+	 */
+	public int syncCall(String receiverName, String command) {
+		/*
+		 * イベントバスにロックかけてやれば出来る気がするが
+		 * すなわちフレームレート的な1/fの世界をイベントハブに用意することになりそう。
+		 * コードがそこで止まる、になるのかな。ヤバいな。
+		 * でもこれがあると、遅延実行の正確な時間指定ができるんだよね。
+		 * 
+		 * ちがう。
+		 * 送信前にMasterHubに問い合わせをして、宛先が存在する場合は送る、そうで無い場合はエラーを即座に返す必要が有る。
+		 * かつ、送信するのはMessengerだ。つまり、
+		 * 発信時刻を決定する責任と実行する責任はMessengerが負うことになる。
+		 * あ、、先にEventBusにしよう。
+		 */
+//		while (true) {
+//			boolean voo = false;
+//			//送信完了が確認できるまで、ここで待つ話になる。 returnの論理を考えよう。
+//			if (voo) break; 
+//		}
+		return -1;
+	}
 }

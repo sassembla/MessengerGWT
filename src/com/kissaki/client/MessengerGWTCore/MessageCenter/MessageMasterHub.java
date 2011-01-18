@@ -1,12 +1,7 @@
 package com.kissaki.client.MessengerGWTCore.MessageCenter;
 
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.List;
-
-import com.google.gwt.user.client.Window;
-import com.kissaki.client.MessengerGWTCore.MessengerGWTImplement;
+import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
 import com.kissaki.client.subFrame.debug.Debug;
 
 
@@ -18,14 +13,16 @@ import com.kissaki.client.subFrame.debug.Debug;
  * GINとか使って疎にしたいところだが。
  * 
  * @author ToruInoue
- *
  */
-public class MessageMasterHub {
+public class MessageMasterHub implements MessengerGWTInterface {
 	static Debug debug;
+	
+	int messageMasterStatus = MESSENGER_STATUS_NULL;
 	
 	private static MessageMasterHub hub = new MessageMasterHub();
 	
-	static MessageChecker checker = null;
+//	static MessageChecker checker = null;
+	static MessageReceivedEventBus eventBus;
 	static ArrayList <String> invocationClassNameList = null; 
 	
 	/**
@@ -33,8 +30,10 @@ public class MessageMasterHub {
 	 * @return
 	 */
 	public static MessageMasterHub getMaster () {
-		if (checker == null) checker = new MessageChecker();
+//		if (checker == null) checker = new MessageChecker();
+		if (eventBus == null) eventBus = new MessageReceivedEventBus(); 
 		if (invocationClassNameList == null) invocationClassNameList = new ArrayList<String>();
+		hub.setMessengerGlobalStatus(MESSENGER_STATUS_READY_FOR_INITIALIZE);
 		return hub;
 	}
 	
@@ -61,7 +60,7 @@ public class MessageMasterHub {
 	 * @param invokeObject
 	 * @param root
 	 */
-	public void setInvokeObject(Object root, Object messengerSelf) {
+	public void setInvokeObject(Object root, MessageReceivedHandler messengerSelf) {
 		
 //		if (invocationClassNameList.contains(root.getClass().toString())) {//すでに同名のクラスが登録されていたら、登録しない。
 //			debug.trace("already added_"+root.getClass());//JSの特例、同クラスの別インスタンスの所持するメソッドの区別が無い証、、、
@@ -70,8 +69,8 @@ public class MessageMasterHub {
 //			debug.trace("just added_"+root.getClass().toString());
 //			checker.addMessageReceivedEventHandler((MessageReceivedEventHandler)messengerSelf);
 //		}
-		checker.addMessageReceivedEventHandler((MessageReceivedEventHandler)messengerSelf);
 		
+		eventBus.addHandler(MessageReceivedEvent.MESSAGE_RECEIVED_EVENT_TYPE, messengerSelf);
 	}
 	
 	/**
@@ -80,7 +79,7 @@ public class MessageMasterHub {
 	 * @param message
 	 */
 	public static void invokeReceive (String message) {
-		checker.newMessageReceived(message);
+		eventBus.fireEvent(new MessageReceivedEvent(message));
 	}
 	
 	/**
@@ -95,8 +94,24 @@ public class MessageMasterHub {
 	 * @param messengerSelf 
 	 */
 	public void destractInvocationClassNameList (Object root) {
-		checker = new MessageChecker();
 		invocationClassNameList.remove(root.getClass().toString());
+	}
+
+	/**
+	 * globalなインスタンスであるこのインスタンスが保持するMessengerSystemとしてのステータス
+	 * @param setUp
+	 */
+	public void setMessengerGlobalStatus(int status) {
+		messageMasterStatus = status;
+	}
+
+	public int getMessengerGlobalStatus() {
+		return messageMasterStatus;
+	}
+
+	@Override
+	public void receiveCenter(String message) {
+		debug.assertTrue(false, "never call this method");
 	}
 
 }
