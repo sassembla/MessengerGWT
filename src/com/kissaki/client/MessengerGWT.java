@@ -14,8 +14,11 @@ import com.google.gwt.event.dom.client.ClickHandler;
 import com.google.gwt.event.dom.client.KeyCodes;
 import com.google.gwt.event.dom.client.KeyUpEvent;
 import com.google.gwt.event.dom.client.KeyUpHandler;
+import com.google.gwt.json.client.JSONObject;
+import com.google.gwt.json.client.JSONString;
 import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.EventListener;
+import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.DialogBox;
@@ -54,18 +57,36 @@ public class MessengerGWT implements EntryPoint, MessengerGWTInterface {
 	 */
 	public void onModuleLoad() {
 		Foo foo = new  Foo("A");
-		
 		Foo foo2 = new Foo("B");
 		
 		messenger = new MessengerGWTImplement("myself", this);
 		
-		messenger.call(messenger.getName(), "command", messenger.tagValue("キーと", "バリューです"));
-		messenger.call(messenger.getName(), "command2", messenger.tagValue("キー2と", "バリューです2"));
+//		messenger.call(messenger.getName(), "command", messenger.tagValue("キーと", "バリューです"));
+//		messenger.call(messenger.getName(), "command2", messenger.tagValue("キー2と", "バリューです2"));
 		
+		JSONObject fooObject = new JSONObject();
+		fooObject.put("childKey", new JSONString("childValue"));
+		
+		messenger.call(messenger.getName(), "fooCommand", 
+				messenger.tagValue("fooString", "fooValue"),
+				messenger.tagValue("fooNumber", 100.0),
+				messenger.tagValue("fooObject", fooObject)
+				);
 	}
 
 	@Override
 	public void receiveCenter(String message) {
-		debug.trace("receiveCenter_メッセージが届いているよ_"+message);
+		
+		String command = messenger.getCommand(message);
+		
+		String fooString = messenger.getValueForTag("fooString", message).isString().stringValue();
+		Window.alert("command_" + command + "	fooString_"+fooString);
+		
+		double fooDouble = messenger.getValueForTag("fooNumber", message).isNumber().doubleValue();
+		Window.alert("command_" + command + "	fooDouble_"+fooDouble);
+		
+		JSONObject fooObject = messenger.getValueForTag("fooObject", message).isObject();
+		Window.alert("command_" + command + "	fooObject_"+fooObject);
+		
 	}
 }

@@ -6,29 +6,57 @@ Without special setting.
 SAMPLE CODE:
 //////////////////////////////////////////////////////////////////////////
 public class Foo implements MessengerGWTInterface {
-	MessengerGWTImplement messenger;
+
+	MessengerGWTImplement messenger;//instance for messaging.
 	
 	
 	public Foo (String name) {
+		
+		//initialize messenger-instance with messenger's-name. 
 		messenger = new MessengerGWTImplement("fooName", this);
-		messenger.call(messenger.getName(), "fooCommand", messenger.tagValue("fooKey", "fooValue"));
+		
+		
+		//prepare JSONObject that will be sent. For demo.
+		JSONObject fooObject = new JSONObject();
+		fooObject.put("childKey", new JSONString("childValue"));
+		
+
+		//"call" method,
+		messenger.call(
+				messenger.getName(), 				//will call another messenger who named 1st parameter.
+				"fooCommand", 					//with some String for express the purpose of this message.
+				messenger.tagValue("fooString", "fooValue"),	//after 3rd parameter, a Tag-Valued JSONObject parameters can be add.  
+				messenger.tagValue("fooNumber", 100.0),		//The method "tagValue(String key, Something value)" prepared.
+				messenger.tagValue("fooObject", fooObject)	//int, double, Sring, JSONObject & JSONArray can be use as value-parameter.
+				);
 	}
 	
 	
 	@Override
 	public void receiveCenter(String message) {
-		Window.alert("message_"+message);
+			
+		String command = messenger.getCommand(message);//command(useful for identify some messages)
+		
+		String fooString = messenger.getValueForTag("fooString", message).isString().stringValue();
+		Window.alert("command_" + command + "	fooString_"+fooString);
+		
+		double fooDouble = messenger.getValueForTag("fooNumber", message).isNumber().doubleValue();
+		Window.alert("command_" + command + "	fooDouble_"+fooDouble);
+		
+		JSONObject fooObject = messenger.getValueForTag("fooObject", message).isObject();
+		Window.alert("command_" + command + "	fooObject_"+fooObject);
+				
 	}
 }
 //////////////////////////////////////////////////////////////////////////
 
 
-VERSION:0.5.0 (alpha release)
+VERSION:0.7.0 (beta release)
 
 
-GOAL:
+GOALS:
+	Delay-messaging
 	Connect each client without GWT-RPC.
-
 
 
 HOT TO USE:
@@ -68,6 +96,7 @@ HOT TO USE:
 	If there are meny class that has self-messenger, they can contact each other.
 		When you call "yourName" and then there is some messenger named "yourName",
 		The message will appear in the "receiveCenter" method of"yourName".
+
 
 
 MECHANIZM IN DETAIL:
