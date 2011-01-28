@@ -34,7 +34,8 @@ import com.kissaki.client.uuidGenerator.UUID;
  */
 public class MessengerGWTImplement extends MessageReceivedHandler implements MessengerGWTInterface {
 	
-	static final String version = "0.7.0";//Beta release
+	static final String version = "0.7.1";//バグフィックスとか調整中
+//		"0.7.0";//11/01/18 17:50:30 Beta release
 //		"0.5.2";//11/01/18 16:41:28 changed to EventBus from HasHandlers(Duplicated) 
 //		"0.5.1";//11/01/09 20:55:55 String-Value-Bug fixed.
 //		"0.5.0";//11/01/05 19:23:28 Alpha release
@@ -121,6 +122,10 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	public static void mtd(String message) {
 		MessageMasterHub.invokeReceive(message);
 	}
+	public static void called (String message) {
+		Debug debugs = new Debug("");
+		debugs.trace("届かないんじゃねーかなー_"+message);
+	}
 	
 	
 	
@@ -137,16 +142,14 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	    		alert("残念ですが、あなたのブラウザはpostMessage APIをサポートしていません。");
 	    		return @com.kissaki.client.MessengerGWTCore.MessengerGWTInterface::MESSENGER_STATUS_NOT_SUPPORTED;
 			} else {
-				window.addEventListener('message', func, false);
-			}
-			
-			function func (e) {
-				method(e.data);
+				window.addEventListener('message',
+					function(e) {method(e.data);},
+					false);
 			}
 			
 			return @com.kissaki.client.MessengerGWTCore.MessengerGWTInterface::MESSENGER_STATUS_OK;
 		} catch (er) {
-			alert("messenger_undefined_error_"+er);//たぶんそう簡単に発生しない
+			alert("messenger_undefined_error_"+er);
 			return @com.kissaki.client.MessengerGWTCore.MessengerGWTInterface::MESSENGER_STATUS_FAILURE;
 		}
 	}-*/;
