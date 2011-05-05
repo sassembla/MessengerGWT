@@ -34,7 +34,8 @@ import com.kissaki.client.uuidGenerator.UUID;
  */
 public class MessengerGWTImplement extends MessageReceivedHandler implements MessengerGWTInterface {
 	
-	static final String version = "0.7.1";//バグフィックスとか調整中
+	static final String version = "0.7.2";///callMyself追加
+//		"0.7.1";//バグフィックスとか調整中
 //		"0.7.0";//11/01/18 17:50:30 Beta release
 //		"0.5.2";//11/01/18 16:41:28 changed to EventBus from HasHandlers(Duplicated) 
 //		"0.5.1";//11/01/09 20:55:55 String-Value-Bug fixed.
@@ -52,6 +53,9 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	public final String KEY_TO_NAME = "MESSENGER_to";
 	public final String KEY_MESSENGER_EXEC = "MESSENGER_exec";
 	public final String KEY_MESSENGER_TAGVALUE_GROUP = "MESSENGER_tagValue"; 
+	public final String KEY_LOCK_BEFORE = "MESSENGER_lock_b";
+	public final String KEY_LOCK_AFTER = "MESSENGER_lock_a";
+	
 	
 	List <JSONObject> sendList = null;
 	List <JSONObject> receiveList = null;
@@ -71,10 +75,9 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		this.messengerID = UUID.uuid(8,16);
 		this.invokeObject = invokeObject;
 		
+		debug.timeAssert("11/05/05 9:02:09", 10000, "わざわざシングルトン使ってる。Ginとか使って祖結合に切り替えたい");
 		if (masterHub == null) {
 			masterHub = MessageMasterHub.getMaster();
-		} else {
-			debug.trace("not first");
 		}
 		
 		sendList = new ArrayList<JSONObject>();
@@ -86,8 +89,6 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		}
 		
 		masterHub.setInvokeObject(invokeObject, this);
-		
-		debug.trace("setInvokefinished");
 	}
 	
 	
@@ -122,9 +123,11 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	public static void mtd(String message) {
 		MessageMasterHub.invokeReceive(message);
 	}
+	
 	public static void called (String message) {
 		Debug debugs = new Debug("");
 		debugs.trace("届かないんじゃねーかなー_"+message);
+		debugs.timeAssert("11/05/05 9:02:09", 0, "なんでしたっけコレ");
 	}
 	
 	
@@ -161,7 +164,6 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 //	 * Messengerの初期設定を行う
 //	 * Nativeのメッセージ受信部分
 //	 * 
-//	 * TODO この部分が、staticなメソッドしか引数に取らないのが絶望的。解消せねば、、
 //	 */
 //	public native void setUp(String messengerName, String messengerID) /*-{
 //		if (typeof window.postMessage === "undefined") { 
@@ -174,7 +176,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 //			center,
 //			//receiver,
 ////			this.@com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::log2(Lcom/google/gwt/user/client/Event;),//ここね。
-//			false);//TODO このfalseって何
+//			false);
 ////		window.attachEvent('message', this.@com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::log2(Lcom/google/gwt/user/client/Event;));
 //		
 //		function receiver() {//この書き方だと、内部のメソッドはstaticで無ければ行けない。それは、駄目でしょ。
@@ -191,14 +193,11 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 
 	/**
 	 * メッセージ受取メソッド
-	 * TODO イベントハンドラで呼ばれている。　native実装が来たら、調整する。　イベントに登録したmessenger全てに送られているが、native実装があれば、そんなに頑張らないでいいはず。
 	 * @param event
 	 */
 	@Override
 	public void onMessageReceived(MessageReceivedEvent event) {
 		String rootMessage = event.getMessage();
-		
-//		debug.trace("rootMessage_"+rootMessage);
 		
 		JSONObject rootObject = null;
 
@@ -298,7 +297,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	
 	
 	/**
-	 * vメッセージ送信メソッド
+	 * 非同期メッセージ送信メソッド
 	 * @param receiverName
 	 * @param command
 	 * @param tagValue
@@ -312,6 +311,16 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		
 		addSendLog(receiverName, command, tagValue);//ログを残す
 	}
+
+	/**
+	 * 非同期メッセージを自分へと送信するメソッド
+	 * 自分へのメッセージング
+	 * @param command
+	 * @param tagValue
+	 */
+	public void callMyself(String command, JSONObject ... tagValue) {
+		call(getName(), command, tagValue);
+	}
 	
 	
 	/**
@@ -323,6 +332,17 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	public void call(String receiverName, String command) {
 		JSONObject [] tagValue = new JSONObject [0];//長さ0の配列としてセット、中身は空
 		call(receiverName, command, tagValue);
+	}
+	
+	
+	/**
+	 * 非同期メッセージを自分へと送信するメソッド
+	 * tagValueが無いバージョン
+	 * 自分へのメッセージング
+	 * @param command
+	 */
+	public void callMyself(String command) {
+		call(getName(), command);
 	}
 	
 	/**
@@ -438,13 +458,11 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		
 		JSONObject tagValueGroup = new JSONObject();
 		
-		int i = 0;
 		for (JSONObject currentObject:tagValue) {
 			for (Iterator<String> currentItel = currentObject.keySet().iterator(); currentItel.hasNext();) {
 				String currentKey = currentItel.next();
 				tagValueGroup.put(currentKey, currentObject.get(currentKey));//オブジェクトの移し替え
 			}
-			i++;
 		}
 		
 		messageMap.put(KEY_MESSENGER_TAGVALUE_GROUP, tagValueGroup);
@@ -589,6 +607,31 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	}
 
 
+	
+	//Lock系の実装
+
+//	public JSONObject withLockBefore(String ... key_lockValues) {
+//		JSONObject singleLockObject = new JSONObject();
+//		
+//		
+//		
+//		int i = 0;
+//		for (String currentObject:key_lockValues) {
+//			
+//		}
+//		singleLockObject.put(keyName, new JSONString(lockValue));
+//		
+//		//[NSDictionary dictionaryWithObject:multiLockArray forKey:MS_LOCK_AFTER];
+//		return tagValue(KEY_LOCK_BEFORE, singleLockObject);
+//	}
+//
+//	public JSONObject withLockAfter(String lockValue, String keyName) {
+//		JSONObject singleLockObject = new JSONObject();
+//		singleLockObject.put(keyName, new JSONString(lockValue));
+//		
+//		return tagValue(KEY_LOCK_AFTER, singleLockObject);
+//	}
+	
 	
 	
 
@@ -767,6 +810,9 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		masterHub.destractInvocationClassNameList(root);
 	}
 
+
+	
+	
 	
 	/**
 	 * テスト中 now under testing.
@@ -796,4 +842,5 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 //		}
 		return -1;
 	}
+
 }

@@ -30,6 +30,10 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	String TEST_TAG = "tag1";
 	String TEST_VALUE = "value1";
 	
+	
+	String TEST_LOCKED_EXEC = "TEST_LOCKED_EXEC";
+	String TEST_LOCK_EXEC	= "TEST_LOCK_EXEC";
+	
 	int INTERVAL_TIMEOUT_MS = 500;
 	int INTERVAL_FPS = 10;
 	
@@ -813,6 +817,30 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		timer.scheduleRepeating(INTERVAL_FPS);
 	}
+	
+//	/**
+//	 * ロックでの、連携動作機構のテスト
+//	 * ロックされたメソッドが必ず実行されることを示す
+//	 */
+//	void testWithLock () {
+//		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
+//			debug.trace("testWithLock	"+messenger.getMessengerStatus());
+//			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
+//			
+//			return;
+//		}
+//		//自分自身に送り、かつ、送られたら特定のメッセージを発行するようにする。
+//	
+//		messenger.callMyself(TEST_LOCKED_EXEC);
+//		messenger.callMyself(TEST_LOCK_EXEC,
+//				messenger.withLockAfter(TEST_LOCKED_EXEC, "key")
+//				);
+//		
+//		
+//		
+//		
+//	}
+	
 	
 	
 	/**

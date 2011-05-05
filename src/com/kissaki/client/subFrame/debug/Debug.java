@@ -2,8 +2,8 @@ package com.kissaki.client.subFrame.debug;
 
 import java.util.Date;
 
+import com.google.gwt.i18n.client.DateTimeFormat;
 import com.google.gwt.user.client.Window;
-//import com.kissaki.client.mainFrame.delegate.ToDoAppDelegate;
 
 
 /**
@@ -24,6 +24,9 @@ import com.google.gwt.user.client.Window;
  *
  */
 public class Debug {
+	String VERSION = "0.6.1_11/05/05 9:02:09";
+		//"0.6.0_11/05/04 10:07:24";
+	
 	/*
 	 * デバッグ状態　enumで持ちたい。
 	 */
@@ -31,7 +34,6 @@ public class Debug {
 	public static final int DEBUG_FALSE = 1;
 	
 	
-	private String DEBUG_VERSION = "";
 	private int debug = DEBUG_TRUE;//デバッグモード getter,setterあり。
 	
 	private String attr = null;//追跡用、作成者クラスの表示用文字列
@@ -68,11 +70,6 @@ public class Debug {
 //		addTraceSetting(DEBUG_ALERT_ON);//JavaScriptでのどうしようも無い時のデバッグ用
 		
 		attr = ""+obj.getClass();
-		
-		Date date;
-		date = new Date();
-		
-		setDEBUG_VERSION(""+date);//バージョン+今日の日付(YYYYMMDD)+時間(hhmm)
 	}
 
 	
@@ -107,6 +104,31 @@ public class Debug {
 		} catch (Throwable t) {
 			selfDebugTrace("trace_error_caused by DEBUG_EVENT_ON_"+t);
 		}
+	}
+	
+	/**
+	 * timeAssert
+	 * yy/MM/dd H:mm:ss　フォーマットで日時をセット、余暇時間をsec単位で入力、コメントを入れておくと、
+	 * その時刻+sec後にこのメソッドが起動したタイミングでassert、Exceptionを発生させる。
+	 * 
+	 * java.lang.RuntimeException
+	 * 
+	 * @param timeString
+	 * @param timeLimit
+	 * @param comment
+	 */
+	public void timeAssert(String timeString, int timeLimit, String comment) {
+		
+		DateTimeFormat dForm = DateTimeFormat.getFormat("yy/MM/dd H:mm:ss");
+		Date date1 = dForm.parseStrict(timeString);
+		
+		long timeMine = date1.getTime()+timeLimit*1000;
+		Date dateDefault = new Date();
+		long now = dateDefault.getTime();
+		
+		assertTrue(now < timeMine, "BOMB	"+comment+"	/expired:	+"+(now - timeMine)+"msec before");
+		assertDebugTrace(comment+"	/left: "+(timeMine - now)+"msec");
+		
 	}
 	
 	
@@ -231,35 +253,6 @@ public class Debug {
 		return true;
 	}
 
-	
-	
-	
-	
-
-	/**
-	 * デバッグバージョンを設定する
-	 * この値を、変更不可なものとしてスクリーンに付け加えるんだね。
-	 * @param dEBUG_VERSION the dEBUG_VERSION to set
-	 */
-	public void setDEBUG_VERSION(String debug_version) {
-		if (DEBUG_VERSION.equals("")) DEBUG_VERSION = debug_version;
-	}
-
-
-	/**
-	 * デバッグバージョンを取得する
-	 * @return the dEBUG_VERSION
-	 */
-	public String getDEBUG_VERSION() {
-		return DEBUG_VERSION;
-	}
-
-	
-	
-	
-	
-	
-	
 
 	
 	
@@ -279,6 +272,14 @@ public class Debug {
 	 */
 	private void selfDebugTrace(String string) {
 		if (isDebug()) System.out.println("*seldDebug* "+attr + TRACE_MESSAGE + string);
+	}
+	
+	/**
+	 * timeAssertから発行する標準出力
+	 * @param string
+	 */
+	private void assertDebugTrace (String string) {
+		if (isDebug()) System.out.println("*timeAssert* "+attr + TRACE_MESSAGE + string);
 	}
 
 	
