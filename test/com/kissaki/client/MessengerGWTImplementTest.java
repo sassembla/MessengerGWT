@@ -23,6 +23,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	
 	MessengerGWTImplement messenger;
 	String TEST_MYNAME = "sender";
+	String TEST_PARENTNAME = "TEST_PARENTNAME";
 	String TEST_COMMAND = "testCommand";
 	String TEST_RECEIVER = "receiver";
 	String TEST_ANOTHERONE = "another";
@@ -249,7 +250,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		};
 		
 		timer.scheduleRepeating(INTERVAL_FPS);
-		
 	}
 	
 	
@@ -817,6 +817,18 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		timer.scheduleRepeating(INTERVAL_FPS);
 	}
+	
+	/**
+	 * 親子関係の実装とテスト
+	 */
+	public void testInputParent () {
+		debug.trace("とうちゃくできてるのか？_"+messenger);
+		messenger.inputParent(TEST_PARENTNAME);
+		debug.trace("通過した、ということは、無い筈。");
+		assertEquals(TEST_PARENTNAME, messenger.getParentName());
+	}
+	
+	
 	
 //	/**
 //	 * ロックでの、連携動作機構のテスト

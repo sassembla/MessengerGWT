@@ -24,8 +24,9 @@ import com.google.gwt.user.client.Window;
  *
  */
 public class Debug {
-	String VERSION = "0.6.1_11/05/05 9:02:09";
-		//"0.6.0_11/05/04 10:07:24";
+	String VERSION = "0.6.2_11/05/06 18:22:16";//TimeAssertの文言の調整 
+//		"0.6.1_11/05/05 9:02:09";
+//		"0.6.0_11/05/04 10:07:24";
 	
 	/*
 	 * デバッグ状態　enumで持ちたい。
@@ -126,8 +127,12 @@ public class Debug {
 		Date dateDefault = new Date();
 		long now = dateDefault.getTime();
 		
-		assertTrue(now < timeMine, "BOMB	"+comment+"	/expired:	+"+(now - timeMine)+"msec before");
-		assertDebugTrace(comment+"	/left: "+(timeMine - now)+"msec");
+		if (now < timeMine) {
+			assertDebugTrace(comment+"	/left: "+(timeMine - now)+"msec");
+		} else {
+			throw new RuntimeException("*BOMB*"+attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
+		}
+		
 		
 	}
 	
@@ -243,10 +248,8 @@ public class Debug {
 	 */
 	public boolean assertTrue(boolean b, String string) {
 		if (!b) {
-			
 			selfDebugTrace(attr + ASSERT_MESSAGE + string);
 //			if (isTraceSet(DEBUG_EVENT_ON)) ToDoAppDelegate.getDelegate().fireEvent(new DebugEvent(attr + ASSERT_MESSAGE + string));
-			
 			throw new RuntimeException(attr + ASSERT_MESSAGE + string);
 		}
 		

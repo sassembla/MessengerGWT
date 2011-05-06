@@ -34,7 +34,8 @@ import com.kissaki.client.uuidGenerator.UUID;
  */
 public class MessengerGWTImplement extends MessageReceivedHandler implements MessengerGWTInterface {
 	
-	static final String version = "0.7.2";///callMyself追加
+	static final String version = "0.7.3";//親子関係の設定/取得機能を追加、まだ制限は無し 
+//		"0.7.2";///callMyself追加
 //		"0.7.1";//バグフィックスとか調整中
 //		"0.7.0";//11/01/18 17:50:30 Beta release
 //		"0.5.2";//11/01/18 16:41:28 changed to EventBus from HasHandlers(Duplicated) 
@@ -48,6 +49,8 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	public final String messengerID;
 	public final Object invokeObject;
 	
+	public String parentName;
+	
 	public final String KEY_MESSENGER_NAME = "MESSENGER_messengerName";
 	public final String KEY_MESSENGER_ID = "MESSENGER_messengerID";
 	public final String KEY_TO_NAME = "MESSENGER_to";
@@ -55,6 +58,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	public final String KEY_MESSENGER_TAGVALUE_GROUP = "MESSENGER_tagValue"; 
 	public final String KEY_LOCK_BEFORE = "MESSENGER_lock_b";
 	public final String KEY_LOCK_AFTER = "MESSENGER_lock_a";
+	
 	
 	
 	List <JSONObject> sendList = null;
@@ -75,7 +79,9 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		this.messengerID = UUID.uuid(8,16);
 		this.invokeObject = invokeObject;
 		
-		debug.timeAssert("11/05/05 9:02:09", 10000, "わざわざシングルトン使ってる。Ginとか使って祖結合に切り替えたい");
+		parentName = "";
+		
+		debug.timeAssert("11/05/15 9:02:09", 10000, "わざわざシングルトン使ってる。Ginとか使って祖結合に切り替えたい");
 		if (masterHub == null) {
 			masterHub = MessageMasterHub.getMaster();
 		}
@@ -322,6 +328,9 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		call(getName(), command, tagValue);
 	}
 	
+	public void callParent(String command, JSONObject ... tagValue) {
+		call(getParentName(), command, tagValue);
+	}
 	
 	/**
 	 * 非同期メッセージ送信メソッド、
@@ -799,6 +808,28 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	}
 
 
+
+	/**
+	 * 親子関係の構築を行う
+	 * @param input
+	 */
+	public void inputParent(String input) {
+		debug.assertTrue(parentName.equals(""), "すでに先約があるようです");
+		debug.assertTrue(!input.equals(""), "空文字は親の名称として指定できません");
+		
+		parentName = input;
+	}
+
+	/**
+	 * 入力されている親の名前を取得する
+	 * @return
+	 */
+	public String getParentName() {
+		debug.assertTrue(!parentName.equals(""), "まだ親のinputが行われていません");
+		return parentName;
+	}
+	
+	
 	
 
 
@@ -842,5 +873,6 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 //		}
 		return -1;
 	}
+
 
 }
