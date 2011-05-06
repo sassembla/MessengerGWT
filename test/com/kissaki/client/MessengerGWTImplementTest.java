@@ -822,10 +822,65 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * 親子関係の実装とテスト
 	 */
 	public void testInputParent () {
-		debug.trace("とうちゃくできてるのか？_"+messenger);
 		messenger.inputParent(TEST_PARENTNAME);
-		debug.trace("通過した、ということは、無い筈。");
 		assertEquals(TEST_PARENTNAME, messenger.getParentName());
+	}
+	
+	/**
+	 * callParentのテスト
+	 * 
+	 */
+	public void testCallParent () {
+		messenger.inputParent(TEST_RECEIVER);
+		setReceiver();
+		
+		messenger.callParent("command");
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+					cancel();
+					
+					String s1 = rec.getMessengerForTesting().getReceiveLog(0);
+					assertTrue(s1.contains("command"));
+					
+					
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+		
+	}
+	
+	public void testCallParentWithTagValue () {
+		messenger.inputParent(TEST_RECEIVER);
+		setReceiver();
+		
+		messenger.callParent("command",
+				messenger.tagValue("タグ", "バリュー")
+		);
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+					cancel();
+					
+					String s1 = rec.getMessengerForTesting().getReceiveLog(0);
+					assertTrue(s1.contains("command"));
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
 	}
 	
 	

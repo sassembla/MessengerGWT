@@ -328,6 +328,12 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		call(getName(), command, tagValue);
 	}
 	
+	/**
+	 * 非同期メッセージを親へと送信するメソッド
+	 * 親へのメッセージング
+	 * @param command
+	 * @param tagValue
+	 */
 	public void callParent(String command, JSONObject ... tagValue) {
 		call(getParentName(), command, tagValue);
 	}
@@ -353,6 +359,19 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	public void callMyself(String command) {
 		call(getName(), command);
 	}
+	
+	/**
+	 * 非同期メッセージを親へと送信するメソッド
+	 * tagValueが無いバージョン
+	 * @param command
+	 */
+	public void callParent(String command) {
+		call(getParentName(), command);
+	}
+	
+	
+	
+	
 	
 	/**
 	 * 入力されたメッセージを元に、宛先とコマンドを変更して発信する
