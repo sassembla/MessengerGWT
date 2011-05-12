@@ -24,7 +24,8 @@ import com.google.gwt.user.client.Window;
  *
  */
 public class Debug {
-	String VERSION = "0.6.2_11/05/06 18:22:16";//TimeAssertの文言の調整 
+	String VERSION = "0.6.3_11/05/10 21:42:04";////TimeAssertの文言の調整、BOMBのメッセージをBOMB直前に表示するように
+//		"0.6.2_11/05/06 18:22:16";//TimeAssertの文言の調整 
 //		"0.6.1_11/05/05 9:02:09";
 //		"0.6.0_11/05/04 10:07:24";
 	
@@ -130,6 +131,7 @@ public class Debug {
 		if (now < timeMine) {
 			assertDebugTrace(comment+"	/left: "+(timeMine - now)+"msec");
 		} else {
+			assertDebugTrace("*BOMB*"+attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
 			throw new RuntimeException("*BOMB*"+attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
 		}
 		

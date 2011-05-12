@@ -114,4 +114,9 @@ public class MessageMasterHub implements MessengerGWTInterface {
 		debug.assertTrue(false, "never call this method");
 	}
 
+	public String getExistMessengerIDFromName(String input) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

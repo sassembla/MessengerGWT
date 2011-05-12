@@ -24,6 +24,11 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	MessengerGWTImplement messenger;
 	String TEST_MYNAME = "sender";
 	String TEST_PARENTNAME = "TEST_PARENTNAME";
+	String TEST_PARENTNAME1  = "TEST_PARENTNAME1";
+	String TEST_PARENTNAME2  = "TEST_PARENTNAME2";
+	String TEST_ORPHANNAME	= "TEST_ORPHANNAME";
+	String TEST_NOPARENTNAME	= "TEST_NOPARENTNAME";
+	
 	String TEST_COMMAND = "testCommand";
 	String TEST_RECEIVER = "receiver";
 	String TEST_ANOTHERONE = "another";
@@ -171,10 +176,10 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		assertEquals("A", decoded_A);
 		
-		JSONObject root1 = messenger.getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, "String"));
+		JSONObject root1 = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, "String"));
 		String s1 = messenger.getValueForTag(TEST_TAG, root1.toString()).isString().stringValue();
 		
-		JSONObject root2 = messenger.getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, s1));
+		JSONObject root2 = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, s1));
 		String s2 = messenger.getValueForTag(TEST_TAG, root2.toString()).isString().stringValue();
 			
 		assertEquals(s1, s2);
@@ -443,7 +448,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void testCreateLog () {
 		
-		messenger.addSendLog(TEST_RECEIVER, TEST_COMMAND, 
+		messenger.addSendLog(0, TEST_RECEIVER, TEST_COMMAND, 
 				messenger.tagValue(TEST_TAG, 1),//JSONNumber
 				messenger.tagValue("キー2", 2),//JSONNumber
 				messenger.tagValue("キー3", 3),//JSONNumber
@@ -452,7 +457,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		String log = messenger.getSendLog(0);
 		debug.trace("log_"+log);
-		
 		
 	}
 	
@@ -536,7 +540,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void testAssumeReceiveLog () {
 		
-		String message = messenger.getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, TEST_VALUE)).toString();
+		String message = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, TEST_VALUE)).toString();
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
         
 		messenger.onMessageReceived(event);
@@ -550,7 +554,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * 自分-自分宛のメッセージを取得したテスト
 	 */
 	public void testGetReceiveToMyself () {
-		String message = messenger.getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, TEST_VALUE)).toString();
+		String message = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, TEST_VALUE)).toString();
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
        
 		messenger.onMessageReceived(event);
@@ -564,7 +568,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * 他人宛のメッセージを取得していないテスト
 	 */
 	public void testNotReceiveTheMessageForAnyone () {
-		String message = messenger.getMessageObjectPreview(TEST_RECEIVER, TEST_COMMAND, messenger.tagValue(TEST_TAG, TEST_VALUE)).toString();
+		String message = messenger.getMessageObjectPreview(0, TEST_RECEIVER, TEST_COMMAND, messenger.tagValue(TEST_TAG, TEST_VALUE)).toString();
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
        
 		messenger.onMessageReceived(event);
@@ -578,7 +582,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void testNotConcernSomeoneToSomeselfMessageNotReceive () {
 		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(TEST_RECEIVER, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+		String message = rec.getMessengerForTesting().getMessageObjectPreview(0, TEST_RECEIVER, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
 		
 		messenger.onMessageReceived(event);
@@ -590,7 +594,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void testNotConcernSomeoneToSomeoneMessageNotReceive () {
 		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(TEST_ANOTHERONE, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+		String message = rec.getMessengerForTesting().getMessageObjectPreview(0, TEST_ANOTHERONE, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
 		
 		messenger.onMessageReceived(event);
@@ -602,7 +606,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void testGetMessageSomeoneToMe () {
 		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
 		
 		messenger.onMessageReceived(event);
@@ -615,7 +619,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	public void testCheckSenderName () {
 		
 		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
 		debug.trace("name_message_"+message);
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
 		
@@ -635,7 +639,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void testChechSenderID () {
 		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
 		debug.trace("id_message_"+message);
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
 		
@@ -657,7 +661,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void testCheckReceivedCommand () {
 		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
 		
 		messenger.onMessageReceived(event);
@@ -673,7 +677,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void testCheckTagValue () {
 		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
 		
 		messenger.onMessageReceived(event);
@@ -688,7 +692,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void testCheckGetTags () {
 		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
 		
 		messenger.onMessageReceived(event);
@@ -704,7 +708,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void testCheckGetValues () {
 		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
 		
 		messenger.onMessageReceived(event);
@@ -721,7 +725,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void testCopyOut () {
 		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
 		
 		String eventString = event.getMessage();
@@ -732,9 +736,9 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		
 		//で、受け取ったメッセージをコピーしたとする
-		String coppiedMessage = rec.getMessengerForTesting().copyOut(TEST_MYNAME, TEST_COMMAND, eventString);
+		String coppiedMessage = rec.getMessengerForTesting().copyOut(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, eventString);
+		debug.trace("here	"+coppiedMessage);
 		MessageReceivedEvent coppiedEvent = new MessageReceivedEvent(coppiedMessage);
-		
 		
 		messenger.onMessageReceived(coppiedEvent);
 		assertTrue(messenger.getReceiveLogSize() == 2);
@@ -822,32 +826,94 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * 親子関係の実装とテスト
 	 */
 	public void testInputParent () {
+		final MessengerGWTImplement messengerParent = new MessengerGWTImplement(TEST_PARENTNAME, this);
 		messenger.inputParent(TEST_PARENTNAME);
-		assertEquals(TEST_PARENTNAME, messenger.getParentName());
+		
+		//親への信号を送って、帰って来た段階で初めてOKになる筈
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (0 < messenger.getReceiveLogSize()) {
+					cancel();
+					
+					assertEquals(TEST_PARENTNAME, messenger.getParentName());
+					
+					messengerParent.removeInvoke(this);
+					
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
 	}
+	
+	
+	/**
+	 * 存在しないメッセンジャーへの送信を行った場合の処理テスト
+	 * 呼べずにエラーが発生する
+	 * 目的としては、指定した親が存在しない事に対して、即時的にエラーを発生させたい。
+	 */
+	public void testInputNotExistParentName () {
+		final MessengerGWTImplement messengerOrphan = new MessengerGWTImplement(TEST_ORPHANNAME, this);
+		messengerOrphan.inputParent(TEST_NOPARENTNAME);
+		//親が見つからなかったとき、そのMessengerは停止すべき。その後メッセージを送ろうとしても、エラーを返すべき。その後、をどう判定するか、、
+		
+		//親への信号を送って、帰って来た段階で初めてOKになる筈
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		
+		Timer timer = new Timer() {
+			int i = 0;
+			@Override
+			public void run() {
+				i++;
+				debug.trace("i_"+i);
+				if (i == 3) {
+					try {
+						messengerOrphan.callParent("");
+					} catch (Exception e) {
+						cancel();
+						finishTest();
+					}
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+	}
+	
 	
 	/**
 	 * callParentのテスト
 	 * 
 	 */
 	public void testCallParent () {
-		messenger.inputParent(TEST_RECEIVER);
-		setReceiver();
+		final MessengerGWTImplement messengerParent = new MessengerGWTImplement(TEST_PARENTNAME1, this);
+		final MessengerGWTImplement messenger2 = new MessengerGWTImplement(TEST_ANOTHERONE, this);
+		messenger2.inputParent(TEST_PARENTNAME1);
 		
-		messenger.callParent("command");
+		
 		
 		delayTestFinish(INTERVAL_TIMEOUT_MS);
 		
 		Timer timer = new Timer() {
 			@Override
 			public void run() {
-				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+				if (1 == messenger2.getReceiveLogSize() && messengerParent.getReceiveLogSize() == 1) {
+					messenger2.callParent("command");
+				}
+				
+				if (1 < messengerParent.getReceiveLogSize()) {
 					cancel();
 					
-					String s1 = rec.getMessengerForTesting().getReceiveLog(0);
+					String s1 = messengerParent.getReceiveLog(1);
+					debug.trace("messengerParent.getReceiveLog(1)	"+messengerParent.getReceiveLog(1));
 					assertTrue(s1.contains("command"));
 					
-					
+					messengerParent.removeInvoke(this);
+					messenger2.removeInvoke(this);
 					finishTest();
 				}
 			}
@@ -858,22 +924,54 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	}
 	
 	public void testCallParentWithTagValue () {
-		messenger.inputParent(TEST_RECEIVER);
-		setReceiver();
-		
-		messenger.callParent("command",
-				messenger.tagValue("タグ", "バリュー")
-		);
+		final MessengerGWTImplement messengerParent = new MessengerGWTImplement(TEST_PARENTNAME2, this);
+		final MessengerGWTImplement messenger2 = new MessengerGWTImplement(TEST_ANOTHERONE, this);
+		messenger2.inputParent(TEST_PARENTNAME2);
 		
 		delayTestFinish(INTERVAL_TIMEOUT_MS);
 		
 		Timer timer = new Timer() {
 			@Override
 			public void run() {
-				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+				if (1 == messenger2.getReceiveLogSize() && messengerParent.getReceiveLogSize() == 1) {
+					messenger2.callParent("command",
+							messenger2.tagValue("タグ", "バリュー")
+					);
+				}
+				
+				if (1 < messengerParent.getReceiveLogSize()) {
 					cancel();
 					
-					String s1 = rec.getMessengerForTesting().getReceiveLog(0);
+					String s1 = messengerParent.getReceiveLog(1);
+					assertTrue(s1.contains("command"));
+					
+					messengerParent.removeInvoke(this);
+					messenger2.removeInvoke(this);
+					
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+	}
+	
+	/**
+	 * 自分へのメッセージングのテスト
+	 */
+	public void testCallMyself () {
+		final int beforeSize = messenger.getReceiveLogSize();
+		messenger.callMyself("command");
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (beforeSize < messenger.getReceiveLogSize()) {
+					cancel();
+					
+					String s1 = messenger.getReceiveLog(0);
 					assertTrue(s1.contains("command"));
 					finishTest();
 				}
@@ -882,6 +980,90 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		timer.scheduleRepeating(INTERVAL_FPS);
 	}
+	
+	
+	public void testCallMyselfWithTagValue () {
+		final int beforeSize = messenger.getReceiveLogSize();
+		messenger.callMyself("command", messenger.tagValue("テストキー", "テストバリュー"));
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (beforeSize < messenger.getReceiveLogSize()) {
+					cancel();
+					
+					String s1 = messenger.getReceiveLog(0);
+					assertTrue(s1.contains("command"));
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+	}
+	
+	public void testCallMyselfWithMultipleTagValue () {
+		final int beforeSize = messenger.getReceiveLogSize();
+		messenger.callMyself("command", 
+				messenger.tagValue("テストキー", "テストバリュー"),
+				messenger.tagValue("テストキー2", "テストバリュー2"));
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (beforeSize < messenger.getReceiveLogSize()) {
+					cancel();
+					
+					String s1 = messenger.getReceiveLog(0);
+					assertTrue(s1.contains("command"));
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+	}
+	
+	/**
+	 * 同名のメッセンジャーが存在する状態での、自分へのメッセージングの影響範囲限定のテスト
+	 */
+	public void testCallMyselfInMultipneSameNameSituation () {
+		Object o = new Object();
+		
+		final MessengerGWTImplement duplicateNameMessenger = new MessengerGWTImplement(TEST_MYNAME, o);
+		
+		final int beforeSize = messenger.getReceiveLogSize();
+		messenger.callMyself("command");
+		
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (beforeSize < messenger.getReceiveLogSize()) {
+					cancel();
+					
+					//何も受け取っていない状態で無ければならない
+					assertEquals(0,	duplicateNameMessenger.getReceiveLogSize());
+					
+					String s1 = messenger.getReceiveLog(0);
+					assertTrue(s1.contains("command"));
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+		
+	}
+	
+	
+	
 	
 	
 	
