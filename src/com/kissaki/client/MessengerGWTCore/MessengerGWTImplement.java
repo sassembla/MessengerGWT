@@ -25,9 +25,12 @@ import com.kissaki.client.uuidGenerator.UUID;
 /**
  * MessengerGWTの実装
  * 
- * Obj-C版の実装から、親子関係を取り除いたバージョン
+ * Obj-C版のGWT環境実装版
+ * 	Obj-C版
+ * 	http://gitorious.org/messengersystem-obj-c
  * 
- * -任意時間での遅延実行：製作中
+ * -親子関係でのMessaging範囲制限と明示：子から親の限定は完了、親から子の限定は未実装
+ * -任意時間での遅延実行：難航、、、
  * -クライアント間の通信：未作成
  * -クライアント-サーバ感の通信：未作成
  * 

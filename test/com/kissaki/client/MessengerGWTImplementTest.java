@@ -620,7 +620,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		setReceiver();
 		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
-		debug.trace("name_message_"+message);
 		MessageReceivedEvent event = new MessageReceivedEvent(message);
 		
 		messenger.onMessageReceived(event);
@@ -737,7 +736,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		//で、受け取ったメッセージをコピーしたとする
 		String coppiedMessage = rec.getMessengerForTesting().copyOut(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, eventString);
-		debug.trace("here	"+coppiedMessage);
 		MessageReceivedEvent coppiedEvent = new MessageReceivedEvent(coppiedMessage);
 		
 		messenger.onMessageReceived(coppiedEvent);

@@ -24,7 +24,8 @@ import com.google.gwt.user.client.Window;
  *
  */
 public class Debug {
-	String VERSION = "0.6.3_11/05/10 21:42:04";////TimeAssertの文言の調整、BOMBのメッセージをBOMB直前に表示するように
+	String VERSION = "0.6.4";//TimeAssertの管理フラッグ追加 
+//		"0.6.3_11/05/10 21:42:04";////TimeAssertの文言の調整、BOMBのメッセージをBOMB直前に表示するように
 //		"0.6.2_11/05/06 18:22:16";//TimeAssertの文言の調整 
 //		"0.6.1_11/05/05 9:02:09";
 //		"0.6.0_11/05/04 10:07:24";
@@ -47,6 +48,7 @@ public class Debug {
 	public final static int DEBUG_OUTPUT_OFF	= 0x0000;//デバッグの文字列に関連する標準出力以外の出力を行わない
 	public final static int DEBUG_EVENT_ON		= 0x0001;//デバッグの文字列をイベントとして出力する	
 	public final static int DEBUG_ALERT_ON		= 0x0010;//デバッグの文字列をアラートとして出力する
+	public final static int DEBUG_TIMEASSERT_ON	= 0x0100;//デバッグのタイムアサート(時限付きToDo表記)を発生させる
 	
 	final String TRACE_MESSAGE = ":";//トレース文字列
 	final String ASSERT_MESSAGE = "_assert:";//アサート文字列
@@ -69,6 +71,7 @@ public class Debug {
 	 */
 	private void initialize(Object obj) {
 		addTraceSetting(DEBUG_EVENT_ON);//クライアント内のデバッグ表示用
+		//addTraceSetting(DEBUG_TIMEASSERT_ON);
 //		addTraceSetting(DEBUG_ALERT_ON);//JavaScriptでのどうしようも無い時のデバッグ用
 		
 		attr = ""+obj.getClass();
@@ -128,13 +131,14 @@ public class Debug {
 		Date dateDefault = new Date();
 		long now = dateDefault.getTime();
 		
-		if (now < timeMine) {
-			assertDebugTrace(comment+"	/left: "+(timeMine - now)+"msec");
-		} else {
-			assertDebugTrace("*BOMB*"+attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
-			throw new RuntimeException("*BOMB*"+attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
+		if (isTraceSet(DEBUG_TIMEASSERT_ON)) { 
+			if (now < timeMine) {
+				assertDebugTrace(comment+"	/left: "+(timeMine - now)+"msec");
+			} else {
+				assertDebugTrace("*BOMB*"+attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
+				throw new RuntimeException("*BOMB*"+attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
+			}
 		}
-		
 		
 	}
 	

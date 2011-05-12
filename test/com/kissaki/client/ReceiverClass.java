@@ -17,6 +17,7 @@ public class ReceiverClass implements MessengerGWTInterface {
 		receiver = new MessengerGWTImplement(TEST_RECEIVER, this);
 	}
 	
+	
 	public MessengerGWTImplement getMessengerForTesting () {
 		return receiver;
 	}
