@@ -71,7 +71,7 @@ public class Debug {
 	 */
 	private void initialize(Object obj) {
 		addTraceSetting(DEBUG_EVENT_ON);//クライアント内のデバッグ表示用
-		//addTraceSetting(DEBUG_TIMEASSERT_ON);
+//		addTraceSetting(DEBUG_TIMEASSERT_ON);
 //		addTraceSetting(DEBUG_ALERT_ON);//JavaScriptでのどうしようも無い時のデバッグ用
 		
 		attr = ""+obj.getClass();

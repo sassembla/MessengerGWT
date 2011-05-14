@@ -1,6 +1,6 @@
 package com.kissaki.client.MessengerGWTCore.MessageCenter;
 
-import java.util.ArrayList;
+
 import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
 import com.kissaki.client.subFrame.debug.Debug;
 
@@ -21,9 +21,7 @@ public class MessageMasterHub implements MessengerGWTInterface {
 	
 	private static MessageMasterHub hub = new MessageMasterHub();
 	
-//	static MessageChecker checker = null;
-	static MessageReceivedEventBus eventBus;
-	static ArrayList <String> invocationClassNameList = null; 
+	static MessageReceivedEventBus eventBus; 
 	
 	/**
 	 * シングルトン取得メソッド
@@ -32,7 +30,6 @@ public class MessageMasterHub implements MessengerGWTInterface {
 	public static MessageMasterHub getMaster () {
 //		if (checker == null) checker = new MessageChecker();
 		if (eventBus == null) eventBus = new MessageReceivedEventBus(); 
-		if (invocationClassNameList == null) invocationClassNameList = new ArrayList<String>();
 		hub.setMessengerGlobalStatus(MESSENGER_STATUS_READY_FOR_INITIALIZE);
 		return hub;
 	}
@@ -55,12 +52,9 @@ public class MessageMasterHub implements MessengerGWTInterface {
 	 * 続き_11/01/13 20:29:49
 	 * 通常のクラスについては、上記現象が発生しなかった。テストを書き換える必要がある。
 	 * 
-	 * @param name
-	 * @param id
-	 * @param invokeObject
-	 * @param root
+	 * @param messengerSelf
 	 */
-	public void setInvokeObject(Object root, MessageReceivedHandler messengerSelf) {
+	public void setInvokeObject(MessageReceivedHandler messengerSelf) {
 		
 //		if (invocationClassNameList.contains(root.getClass().toString())) {//すでに同名のクラスが登録されていたら、登録しない。
 //			debug.trace("already added_"+root.getClass());//JSの特例、同クラスの別インスタンスの所持するメソッドの区別が無い証、、、
@@ -78,24 +72,20 @@ public class MessageMasterHub implements MessengerGWTInterface {
 	 * ここで、イベントが発行される
 	 * @param message
 	 */
-	public static void invokeReceive (String message) {
+	public static void messageReceived (String message) {
+		eventBus.fireEvent(new MessageReceivedEvent(message));//ここを通過する過程で、staticが消える。
+	}
+	
+	
+	/**
+	 * イベントでの同期メッセージ受け取り状態の強制作り出し
+	 * @param message
+	 */
+	@Deprecated
+	public void syncMessage (String message) {
 		eventBus.fireEvent(new MessageReceivedEvent(message));
 	}
 	
-	/**
-	 * ハンドラリセット用のメソッド
-	 * 所持クラスからメッセージのハンドラを削除する
-	 * 
-	 * TODO テスト版のため、特定のメソッドではなく全ての記録が消える。
-	 * 
-	 * 同名のクラスが存在する場合、どれかひとつのハンドラを消去したタイミングで、生存しているオブジェクトへのメッセージも
-	 * 到達しなくなるので、同名クラスを使う場合は注意すること。っていっても注意のしようもないのだけれど。
-	 * 
-	 * @param messengerSelf 
-	 */
-	public void destractInvocationClassNameList (Object root) {
-		invocationClassNameList.remove(root.getClass().toString());
-	}
 
 	/**
 	 * globalなインスタンスであるこのインスタンスが保持するMessengerSystemとしてのステータス
@@ -114,9 +104,5 @@ public class MessageMasterHub implements MessengerGWTInterface {
 		debug.assertTrue(false, "never call this method");
 	}
 
-	public String getExistMessengerIDFromName(String input) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 }
