@@ -1,8 +1,6 @@
 package com.kissaki.client;
 
-import java.util.ArrayList;
 
-import com.google.gwt.dev.json.JsonArray;
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
@@ -10,11 +8,9 @@ import com.google.gwt.json.client.JSONParser;
 import com.google.gwt.json.client.JSONString;
 import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.junit.client.GWTTestCase;
-import com.google.gwt.user.client.Event;
 import com.google.gwt.user.client.Timer;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTImplement;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
-import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEvent;
 import com.kissaki.client.subFrame.debug.Debug;
 
 
@@ -176,10 +172,10 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		assertEquals("A", decoded_A);
 		
-		JSONObject root1 = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, "String"));
+		JSONObject root1 = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, 0, messenger.tagValue(TEST_TAG, "String"));
 		String s1 = messenger.getValueForTag(TEST_TAG, root1.toString()).isString().stringValue();
 		
-		JSONObject root2 = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, s1));
+		JSONObject root2 = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, 0, messenger.tagValue(TEST_TAG, s1));
 		String s2 = messenger.getValueForTag(TEST_TAG, root2.toString()).isString().stringValue();
 			
 		assertEquals(s1, s2);
@@ -441,27 +437,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	
 	
 	
-	/**
-	 * ログのテスト
-	 * 通信発進時に、内容をログに残す
-	 * 発信順に保存する。
-	 */
-	public void testCreateLog () {
-		
-		messenger.addSendLog(0, TEST_RECEIVER, TEST_COMMAND, 
-				messenger.tagValue(TEST_TAG, 1),//JSONNumber
-				messenger.tagValue("キー2", 2),//JSONNumber
-				messenger.tagValue("キー3", 3),//JSONNumber
-				messenger.tagValue("キー4", 4)//JSONNumber
-				);
-		
-		String log = messenger.getSendLog(0);
-		debug.trace("log_"+log);
-		
-	}
-	
-	
-	
 	
 	/**
 	 * Callのテスト
@@ -534,217 +509,190 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	
 	
 	
-	//仮想的に受信者がいる場合のテスト//////////////////////////////////////////////////////////
-	/**
-	 * 自分~自分へのメッセージ
-	 */
-	public void testAssumeReceiveLog () {
-		
-		String message = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, TEST_VALUE)).toString();
-		MessageReceivedEvent event = new MessageReceivedEvent(message);
-        
-		messenger.onMessageReceived(event);
-		String s = messenger.getReceiveLog(0);
-		
-		assertEquals(1, messenger.getReceiveLogSize());
-	}
-	
-	
-	/**
-	 * 自分-自分宛のメッセージを取得したテスト
-	 */
-	public void testGetReceiveToMyself () {
-		String message = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, messenger.tagValue(TEST_TAG, TEST_VALUE)).toString();
-		MessageReceivedEvent event = new MessageReceivedEvent(message);
-       
-		messenger.onMessageReceived(event);
-		String s = messenger.getReceiveLog(0);
-		
-		assertEquals(1, messenger.getReceiveLogSize());
-	}
-	
-	
-	/**
-	 * 他人宛のメッセージを取得していないテスト
-	 */
-	public void testNotReceiveTheMessageForAnyone () {
-		String message = messenger.getMessageObjectPreview(0, TEST_RECEIVER, TEST_COMMAND, messenger.tagValue(TEST_TAG, TEST_VALUE)).toString();
-		MessageReceivedEvent event = new MessageReceivedEvent(message);
-       
-		messenger.onMessageReceived(event);
-		
-		assertEquals(0, messenger.getReceiveLogSize());
-	}
-	
-	
-	/**
-	 * 他人-他人間のメッセージを取得していないテスト
-	 */
-	public void testNotConcernSomeoneToSomeselfMessageNotReceive () {
-		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(0, TEST_RECEIVER, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
-		MessageReceivedEvent event = new MessageReceivedEvent(message);
-		
-		messenger.onMessageReceived(event);
-		assertEquals(0, messenger.getReceiveLogSize());
-	}
-	
-	/**
-	 * 他人-第三者間のメッセージを取得していないテスト
-	 */
-	public void testNotConcernSomeoneToSomeoneMessageNotReceive () {
-		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(0, TEST_ANOTHERONE, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
-		MessageReceivedEvent event = new MessageReceivedEvent(message);
-		
-		messenger.onMessageReceived(event);
-		assertEquals(0, messenger.getReceiveLogSize());
-	}
-	
-	/**
-	 * 他人-自分宛のメッセージを受け取るテスト
-	 */
-	public void testGetMessageSomeoneToMe () {
-		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
-		MessageReceivedEvent event = new MessageReceivedEvent(message);
-		
-		messenger.onMessageReceived(event);
-		assertEquals(1, messenger.getReceiveLogSize());
-	}
-	
-	/**
-	 * 受信したメッセージの送信者名を取得するメソッドの内容チェック
-	 */
-	public void testCheckSenderName () {
-		
-		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
-		MessageReceivedEvent event = new MessageReceivedEvent(message);
-		
-		messenger.onMessageReceived(event);
-		
-		assertEquals(1, messenger.getReceiveLogSize());
-		
-		String s = messenger.getReceiveLog(0);
-		
-		String senderName = messenger.getSenderName(s);
-		assertEquals(rec.getMessengerForTesting().getName(), senderName);
-	}
-	
-	
-	/**
-	 * 受信したメッセージの送信者IDを取得するメソッドの内容チェック
-	 */
-	public void testChechSenderID () {
-		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
-		debug.trace("id_message_"+message);
-		MessageReceivedEvent event = new MessageReceivedEvent(message);
-		
-		messenger.onMessageReceived(event);
-		
-		assertEquals(1, messenger.getReceiveLogSize());
-		
-		String s = messenger.getReceiveLog(0);
-		debug.trace("id_s_"+s);
-		String senderID = messenger.getSenderID(s);
-		
-		assertEquals(rec.getMessengerForTesting().getID(), senderID);
-	}
-	
-	
-	
-	/**
-	 * 受信したコマンドを分析するコマンドの内容チェック
-	 */
-	public void testCheckReceivedCommand () {
-		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
-		MessageReceivedEvent event = new MessageReceivedEvent(message);
-		
-		messenger.onMessageReceived(event);
-		String s = messenger.getReceiveLog(0);
-		
-		String command = messenger.getCommand(s);
-		assertEquals(TEST_COMMAND, command);
-	}
-	
-	
-	/**
-	 * 受信したtagValueの内容を分析するテスト
-	 */
-	public void testCheckTagValue () {
-		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
-		MessageReceivedEvent event = new MessageReceivedEvent(message);
-		
-		messenger.onMessageReceived(event);
-		String s = messenger.getReceiveLog(0);
-		String tagValue1 = messenger.getValueForTag(TEST_TAG, s).isString().stringValue();//isString, isObject, isArray, isNumber, isBoolean　とかが入るので、こんな感じ。
-		assertEquals(TEST_VALUE, tagValue1);
-	}
-	
-	
-	/**
-	 * タグ集をゲットするメソッドの内容テスト
-	 */
-	public void testCheckGetTags () {
-		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
-		MessageReceivedEvent event = new MessageReceivedEvent(message);
-		
-		messenger.onMessageReceived(event);
-		String s = messenger.getReceiveLog(0);
-		
-		ArrayList<String> tags = messenger.getTags(s);
-		assertEquals(1, tags.size());
-		assertEquals(TEST_TAG, tags.get(0));
-	}
-	
-	/**
-	 * バリュー集をゲットするメソッドの内容テスト
-	 */
-	public void testCheckGetValues () {
-		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
-		MessageReceivedEvent event = new MessageReceivedEvent(message);
-		
-		messenger.onMessageReceived(event);
-		String s = messenger.getReceiveLog(0);
-		
-		ArrayList<JSONValue> values = messenger.getValues(s);
-		
-		assertEquals(1, values.size());
-		assertEquals(TEST_VALUE, values.get(0).isString().stringValue());
-	}
-	
-	/**
-	 * 受信したメッセージを、宛先変更とcommand変更のみで再送する機能のテスト
-	 */
-	public void testCopyOut () {
-		setReceiver();
-		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
-		MessageReceivedEvent event = new MessageReceivedEvent(message);
-		
-		String eventString = event.getMessage();
-		
-		//受け取った
-		messenger.onMessageReceived(event);
-		String s = messenger.getReceiveLog(0);
-		
-		
-		//で、受け取ったメッセージをコピーしたとする
-		String coppiedMessage = rec.getMessengerForTesting().copyOut(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, eventString);
-		MessageReceivedEvent coppiedEvent = new MessageReceivedEvent(coppiedMessage);
-		
-		messenger.onMessageReceived(coppiedEvent);
-		assertTrue(messenger.getReceiveLogSize() == 2);
-		String coppiedS = messenger.getReceiveLog(1);
-		
-		//ログが一致する筈
-		assertEquals(s, coppiedS);
-	}
+//	//仮想的に受信者がいる場合のテスト//////////////////////////////////////////////////////////
+//	/**
+//	 * 自分~自分へのメッセージ
+//	 */
+////	public void testAssumeReceiveLog () {
+////		
+////		String message = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, 0, messenger.tagValue(TEST_TAG, TEST_VALUE)).toString();
+////		MessageReceivedEvent event = new MessageReceivedEvent(message);
+////        
+////		messenger.onMessageReceived(event);
+////		String s = messenger.getReceiveLog(0);
+////		
+////		assertEquals(1, messenger.getReceiveLogSize());
+////	}
+//	
+//	
+//	/**
+//	 * 自分-自分宛のメッセージを取得したテスト
+//	 */
+//	public void testGetReceiveToMyself () {
+//		String message = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, 0, messenger.tagValue(TEST_TAG, TEST_VALUE)).toString();
+//		MessageReceivedEvent event = new MessageReceivedEvent(message);
+//       
+//		messenger.onMessageReceived(event);
+//		String s = messenger.getReceiveLog(0);
+//		
+//		assertEquals(1, messenger.getReceiveLogSize());
+//	}
+//	
+//	
+//	/**
+//	 * 他人宛のメッセージを取得していないテスト
+//	 */
+//	public void testNotReceiveTheMessageForAnyone () {
+//		String message = messenger.getMessageObjectPreview(0, TEST_RECEIVER, TEST_COMMAND, 0, messenger.tagValue(TEST_TAG, TEST_VALUE)).toString();
+//		MessageReceivedEvent event = new MessageReceivedEvent(message);
+//       
+//		messenger.onMessageReceived(event);
+//		
+//		assertEquals(0, messenger.getReceiveLogSize());
+//	}
+//	
+//	
+//	/**
+//	 * 他人-他人間のメッセージを取得していないテスト
+//	 */
+//	public void testNotConcernSomeoneToSomeselfMessageNotReceive () {
+//		setReceiver();
+//		String message = rec.getMessengerForTesting().getMessageObjectPreview(0, TEST_RECEIVER, TEST_COMMAND, 0, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+//		MessageReceivedEvent event = new MessageReceivedEvent(message);
+//		
+//		messenger.onMessageReceived(event);
+//		assertEquals(0, messenger.getReceiveLogSize());
+//	}
+//	
+//	/**
+//	 * 他人-第三者間のメッセージを取得していないテスト
+//	 */
+//	public void testNotConcernSomeoneToSomeoneMessageNotReceive () {
+//		setReceiver();
+//		String message = rec.getMessengerForTesting().getMessageObjectPreview(0, TEST_ANOTHERONE, TEST_COMMAND, 0, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+//		MessageReceivedEvent event = new MessageReceivedEvent(message);
+//		
+//		messenger.onMessageReceived(event);
+//		assertEquals(0, messenger.getReceiveLogSize());
+//	}
+//	
+//	/**
+//	 * 他人-自分宛のメッセージを受け取るテスト
+//	 */
+//	public void testGetMessageSomeoneToMe () {
+//		setReceiver();
+//		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, 0, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+//		MessageReceivedEvent event = new MessageReceivedEvent(message);
+//		
+//		messenger.onMessageReceived(event);
+//		assertEquals(1, messenger.getReceiveLogSize());
+//	}
+//	
+//	/**
+//	 * 受信したメッセージの送信者名を取得するメソッドの内容チェック
+//	 */
+//	public void testCheckSenderName () {
+//		
+//		setReceiver();
+//		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, 0, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+//		MessageReceivedEvent event = new MessageReceivedEvent(message);
+//		
+//		messenger.onMessageReceived(event);
+//		
+//		assertEquals(1, messenger.getReceiveLogSize());
+//		
+//		String s = messenger.getReceiveLog(0);
+//		
+//		String senderName = messenger.getSenderName(s);
+//		assertEquals(rec.getMessengerForTesting().getName(), senderName);
+//	}
+//	
+//	
+//	/**
+//	 * 受信したメッセージの送信者IDを取得するメソッドの内容チェック
+//	 */
+//	public void testChechSenderID () {
+//		setReceiver();
+//		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, 0, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+//		debug.trace("id_message_"+message);
+//		MessageReceivedEvent event = new MessageReceivedEvent(message);
+//		
+//		messenger.onMessageReceived(event);
+//		
+//		assertEquals(1, messenger.getReceiveLogSize());
+//		
+//		String s = messenger.getReceiveLog(0);
+//		debug.trace("id_s_"+s);
+//		String senderID = messenger.getSenderID(s);
+//		
+//		assertEquals(rec.getMessengerForTesting().getID(), senderID);
+//	}
+//	
+//	
+//	
+//	/**
+//	 * 受信したコマンドを分析するコマンドの内容チェック
+//	 */
+//	public void testCheckReceivedCommand () {
+//		setReceiver();
+//		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, 0, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+//		MessageReceivedEvent event = new MessageReceivedEvent(message);
+//		
+//		messenger.onMessageReceived(event);
+//		String s = messenger.getReceiveLog(0);
+//		
+//		String command = messenger.getCommand(s);
+//		assertEquals(TEST_COMMAND, command);
+//	}
+//	
+//	
+//	/**
+//	 * 受信したtagValueの内容を分析するテスト
+//	 */
+//	public void testCheckTagValue () {
+//		setReceiver();
+//		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, 0, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+//		MessageReceivedEvent event = new MessageReceivedEvent(message);
+//		
+//		messenger.onMessageReceived(event);
+//		String s = messenger.getReceiveLog(0);
+//		String tagValue1 = messenger.getValueForTag(TEST_TAG, s).isString().stringValue();//isString, isObject, isArray, isNumber, isBoolean　とかが入るので、こんな感じ。
+//		assertEquals(TEST_VALUE, tagValue1);
+//	}
+//	
+//	
+//	/**
+//	 * タグ集をゲットするメソッドの内容テスト
+//	 */
+//	public void testCheckGetTags () {
+//		setReceiver();
+//		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, 0, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+//		MessageReceivedEvent event = new MessageReceivedEvent(message);
+//		
+//		messenger.onMessageReceived(event);
+//		String s = messenger.getReceiveLog(0);
+//		
+//		ArrayList<String> tags = messenger.getTags(s);
+//		assertEquals(1, tags.size());
+//		assertEquals(TEST_TAG, tags.get(0));
+//	}
+//	
+//	/**
+//	 * バリュー集をゲットするメソッドの内容テスト
+//	 */
+//	public void testCheckGetValues () {
+//		setReceiver();
+//		String message = rec.getMessengerForTesting().getMessageObjectPreview(messenger.MS_CATEGOLY_CALLCHILD, TEST_MYNAME, TEST_COMMAND, 0, rec.getMessengerForTesting().tagValue(TEST_TAG, TEST_VALUE)).toString();
+//		MessageReceivedEvent event = new MessageReceivedEvent(message);
+//		
+//		messenger.onMessageReceived(event);
+//		String s = messenger.getReceiveLog(0);
+//		
+//		ArrayList<JSONValue> values = messenger.getValues(s);
+//		
+//		assertEquals(1, values.size());
+//		assertEquals(TEST_VALUE, values.get(0).isString().stringValue());
+//	}
 	
 	
 	
@@ -838,8 +786,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 					
 					assertEquals(TEST_PARENTNAME, messenger.getParentName());
 					
-					messengerParent.removeInvoke(this);
-					
 					finishTest();
 				}
 			}
@@ -909,9 +855,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 					String s1 = messengerParent.getReceiveLog(1);
 					debug.trace("messengerParent.getReceiveLog(1)	"+messengerParent.getReceiveLog(1));
 					assertTrue(s1.contains("command"));
-					
-					messengerParent.removeInvoke(this);
-					messenger2.removeInvoke(this);
 					finishTest();
 				}
 			}
@@ -942,9 +885,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 					
 					String s1 = messengerParent.getReceiveLog(1);
 					assertTrue(s1.contains("command"));
-					
-					messengerParent.removeInvoke(this);
-					messenger2.removeInvoke(this);
 					
 					finishTest();
 				}
@@ -1092,7 +1032,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	
 	/**
 	 * 同期(受取手の不在か、存在した場合受取手のロック解除が確認されるまでロックする)メソッドのテスト
-	 * なんか再帰しそう。
 	 */
 	public void testSyncCall() {
 		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
@@ -1104,7 +1043,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		setReceiver();
 		
-		messenger.syncCall(TEST_RECEIVER, "command");
+		messenger.sCall(TEST_RECEIVER, "command");
 		
 		String s1 = rec.getMessengerForTesting().getReceiveLog(0);
 		assertTrue(s1.contains("command"));
