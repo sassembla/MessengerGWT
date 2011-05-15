@@ -1,6 +1,8 @@
 package com.kissaki.client;
 
 
+import java.util.List;
+
 import com.google.gwt.json.client.JSONArray;
 import com.google.gwt.json.client.JSONNumber;
 import com.google.gwt.json.client.JSONObject;
@@ -11,7 +13,10 @@ import com.google.gwt.junit.client.GWTTestCase;
 import com.google.gwt.user.client.Timer;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTImplement;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
+import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageMasterHub;
 import com.kissaki.client.subFrame.debug.Debug;
+import com.kissaki.client.uuidGenerator.UUID;
+import com.sun.org.apache.bcel.internal.generic.NEW;
 
 
 public class MessengerGWTImplementTest extends GWTTestCase implements MessengerGWTInterface {
@@ -19,9 +24,11 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	
 	MessengerGWTImplement messenger;
 	String TEST_MYNAME = "sender";
-	String TEST_PARENTNAME = "TEST_PARENTNAME";
-	String TEST_PARENTNAME1  = "TEST_PARENTNAME1";
-	String TEST_PARENTNAME2  = "TEST_PARENTNAME2";
+	String TEST_MYID = "testID";
+	String TEST_PARENTNAME	= "TEST_PARENTNAME";
+	String TEST_CHILDNAME	= "TEST_CHILDNAME";
+	String TEST_PARENTNAME1	= "TEST_PARENTNAME1";
+	String TEST_PARENTNAME2	= "TEST_PARENTNAME2";
 	String TEST_ORPHANNAME	= "TEST_ORPHANNAME";
 	String TEST_NOPARENTNAME	= "TEST_NOPARENTNAME";
 	
@@ -56,12 +63,15 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		return "com.kissaki.MessengerGWT";//パッケージの中で、クライアント/サーバの前+プロジェクトプロジェクト名称(xmlでの読み出しが行われている箇所)
 	}
 	
+	MessageMasterHub currentMaster;
 	
 	/**
 	 * セットアップ
 	 */
 	public void gwtSetUp () {
-		debug.trace("setup");
+		debug.trace("setup_"+this);
+		currentMaster = MessageMasterHub.getMaster();//この時点でマスターが存在すれば良い
+		debug.trace("setup_2_"+currentMaster);
 		messenger = new MessengerGWTImplement(TEST_MYNAME, this);
 	}
 	
@@ -70,7 +80,11 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * ティアダウン
 	 */
 	public void gwtTearDown () {
-		messenger.removeInvoke(this);
+		currentMaster.resetAllInvocationSetting();
+		currentMaster = null;
+		
+		rec.receiver = null;
+		rec = null;
 		messenger = null;
 		debug.trace("teardown");
 	}
@@ -172,10 +186,10 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		assertEquals("A", decoded_A);
 		
-		JSONObject root1 = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, 0, messenger.tagValue(TEST_TAG, "String"));
+		JSONObject root1 = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_MYID, TEST_COMMAND, messenger.tagValue(TEST_TAG, "String"));
 		String s1 = messenger.getValueForTag(TEST_TAG, root1.toString()).isString().stringValue();
 		
-		JSONObject root2 = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_COMMAND, 0, messenger.tagValue(TEST_TAG, s1));
+		JSONObject root2 = messenger.getMessageObjectPreview(0, TEST_MYNAME, TEST_MYID, TEST_COMMAND, messenger.tagValue(TEST_TAG, s1));
 		String s2 = messenger.getValueForTag(TEST_TAG, root2.toString()).isString().stringValue();
 			
 		assertEquals(s1, s2);
@@ -191,6 +205,8 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
 			return;
 		}
+		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
 		
 		messenger.call(TEST_RECEIVER, TEST_COMMAND,
 			messenger.tagValue(TEST_TAG, "1")
@@ -221,6 +237,8 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		}
 		
 		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
+		
 		
 		messenger.call(TEST_RECEIVER, TEST_COMMAND,
 			messenger.tagValue(TEST_TAG, "1")
@@ -231,11 +249,11 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		Timer timer = new Timer() {
 			@Override
 			public void run() {
-				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+				if (1 < rec.getMessengerForTesting().getReceiveLogSize()) {
 					cancel();
 					
 					//到達したら
-					String receiveMessage = rec.getMessengerForTesting().getReceiveLog(0);
+					String receiveMessage = rec.getMessengerForTesting().getReceiveLog(1);
 					String actualCommand = messenger.getCommand(receiveMessage);
 					assertEquals(TEST_COMMAND, actualCommand);
 					
@@ -265,6 +283,9 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
 			return;
 		}
+		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
+		
 		
 		messenger.call(TEST_RECEIVER, TEST_COMMAND,
 			messenger.tagValue(TEST_TAG, "1")
@@ -298,6 +319,8 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		}
 		
 		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
+		
 		
 		messenger.call(TEST_RECEIVER, TEST_COMMAND,
 			messenger.tagValue(TEST_TAG, "1")
@@ -308,11 +331,11 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		Timer timer = new Timer() {
 			@Override
 			public void run() {
-				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+				if (1 < rec.getMessengerForTesting().getReceiveLogSize()) {
 					cancel();
 					
 					//到達したら
-					String receiveMessage = rec.getMessengerForTesting().getReceiveLog(0);
+					String receiveMessage = rec.getMessengerForTesting().getReceiveLog(1);
 					String actualCommand = messenger.getCommand(receiveMessage);
 					assertEquals(TEST_COMMAND, actualCommand);
 					
@@ -348,6 +371,9 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 			
 			return;
 		}
+		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
+		
 		
 		messenger.call(TEST_RECEIVER, TEST_COMMAND, 
 			messenger.tagValue(TEST_TAG, 1),//JSONNumber
@@ -388,6 +414,8 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		}
 		
 		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
+		
 		
 		messenger.call(TEST_RECEIVER, TEST_COMMAND, 
 			messenger.tagValue(TEST_TAG, 1),//JSONNumber
@@ -401,11 +429,11 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		Timer timer = new Timer() {
 			@Override
 			public void run() {
-				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+				if (1 < rec.getMessengerForTesting().getReceiveLogSize()) {
 					cancel();
 					
 					//到達したら
-					String receiveMessage = rec.getMessengerForTesting().getReceiveLog(0);
+					String receiveMessage = rec.getMessengerForTesting().getReceiveLog(1);
 					JSONValue actualTagValue1 = messenger.getValueForTag(TEST_TAG, receiveMessage);
 					assertTrue(actualTagValue1.isNumber() != null);
 					assertEquals(1, (int)actualTagValue1.isNumber().doubleValue());
@@ -466,6 +494,8 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		JSONObject obj = new JSONObject();
 		obj.put("valOf5", new JSONNumber(5));
 		
+		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
 		
 		messenger.call(TEST_RECEIVER, TEST_COMMAND,
 			messenger.tagValue(TEST_TAG, 1),//JSONNumber
@@ -499,6 +529,9 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 			
 			return;
 		}
+		
+		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
 		
 		messenger.call(TEST_RECEIVER, TEST_COMMAND);
 		
@@ -712,6 +745,8 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		}
 		
 		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
+		
 		
 		messenger.call(TEST_RECEIVER, "testCommand");
 		delayTestFinish(INTERVAL_TIMEOUT_MS);
@@ -719,10 +754,10 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		Timer timer = new Timer() {
 			@Override
 			public void run() {
-				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+				if (1 < rec.getMessengerForTesting().getReceiveLogSize()) {
 					cancel();
 					
-					assertEquals(1, rec.getMessengerForTesting().getReceiveLogSize());
+					assertEquals(2, rec.getMessengerForTesting().getReceiveLogSize());
 					
 					finishTest();
 				}
@@ -745,19 +780,21 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		}
 		
 		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
 		
-		messenger.call(TEST_RECEIVER, "command");
+		
+		messenger.call(TEST_RECEIVER, TEST_COMMAND);
 		
 		delayTestFinish(INTERVAL_TIMEOUT_MS);
 		
 		Timer timer = new Timer() {
 			@Override
 			public void run() {
-				if (0 < rec.getMessengerForTesting().getReceiveLogSize()) {
+				if (1 < rec.getMessengerForTesting().getReceiveLogSize()) {
 					cancel();
 					
-					String s1 = rec.getMessengerForTesting().getReceiveLog(0);
-					assertTrue(s1.contains("command"));
+					String s1 = rec.getMessengerForTesting().getReceiveLog(1);
+					assertTrue(s1.contains(TEST_COMMAND));
 					
 					
 					finishTest();
@@ -768,6 +805,92 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		timer.scheduleRepeating(INTERVAL_FPS);
 	}
 	
+	/**
+	 * 指定した親へとメッセージが届く
+	 */
+	public void testInputParentReach () {
+		Object o = new Object();
+		final MessengerGWTImplement parentMessenger = new MessengerGWTImplement("currentParent2", o);
+		
+		Object c = new Object();
+		final MessengerGWTImplement childMessenger = new MessengerGWTImplement("currentChild", c);
+		
+		childMessenger.inputParent(parentMessenger.getName());
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		assertEquals(0, parentMessenger.getReceiveLogSize());
+		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (parentMessenger.getReceiveLogSize() == 1) {
+					cancel();
+					List<JSONObject> currentChildList = parentMessenger.childList;
+				
+					assertEquals(1, currentChildList.size());
+					JSONObject obj = currentChildList.get(0);
+					assertTrue(obj.get(messenger.CHILDLIST_KEY_CHILD_ID).isString() != null);
+					String childId = obj.get(messenger.CHILDLIST_KEY_CHILD_ID).isString().stringValue();
+					
+					assertTrue(obj.get(messenger.CHILDLIST_KEY_CHILD_NAME).isString() != null);
+					String childName = obj.get(messenger.CHILDLIST_KEY_CHILD_NAME).isString().stringValue();
+
+					assertEquals(childMessenger.getName(), childName);
+					assertEquals(childMessenger.getID(), childId);
+					
+					
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+	}
+	
+	/**
+	 * 正確なIDの子供へのが有る
+	 */
+	public void testInputParentReturned () {
+		Object o_ = new Object();
+		final MessengerGWTImplement parentDummyMessenger = new MessengerGWTImplement("dummyParent", o_);
+		
+		Object o = new Object();
+		final MessengerGWTImplement parentMessenger = new MessengerGWTImplement("currentParent", o);
+		
+		Object c = new Object();
+		final MessengerGWTImplement childMessenger = new MessengerGWTImplement("currentChild", c);
+		
+		Object o2 = new Object();
+		final MessengerGWTImplement parentMessenger2 = new MessengerGWTImplement("currentParent", o);
+		
+		
+		childMessenger.inputParent(parentMessenger.getName());//同名の親が存在する可能性のある状態
+		
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		assertEquals(0, parentMessenger.getReceiveLogSize());
+		
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (childMessenger.getReceiveLogSize() == 1) {
+					cancel();
+					
+					String parentName = childMessenger.getParentName();
+					assertEquals(parentMessenger.getName(), parentName);
+					
+					String paretnID = childMessenger.getParentID();
+					assertEquals(parentMessenger.getID(), paretnID);
+										
+					
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+	}
+
 	/**
 	 * 親子関係の実装とテスト
 	 */
@@ -830,62 +953,54 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	
 	
 	/**
-	 * callParentのテスト
-	 * 
+	 * 件数ベースでの子供登録がなされているかどうかのテスト
+	 * 単独の子供
 	 */
-	public void testCallParent () {
-		final MessengerGWTImplement messengerParent = new MessengerGWTImplement(TEST_PARENTNAME1, this);
-		final MessengerGWTImplement messenger2 = new MessengerGWTImplement(TEST_ANOTHERONE, this);
-		messenger2.inputParent(TEST_PARENTNAME1);
+	public void testInputParentSingleNumber () {
+		final MessengerGWTImplement messengerParent = new MessengerGWTImplement(TEST_PARENTNAME, this);
+		messengerParent.inputParent(messenger.getName());
 		
-		
-		
+		//親への信号を送って、帰って来た段階で初めてOKになる筈
 		delayTestFinish(INTERVAL_TIMEOUT_MS);
 		
 		Timer timer = new Timer() {
 			@Override
 			public void run() {
-				if (1 == messenger2.getReceiveLogSize() && messengerParent.getReceiveLogSize() == 1) {
-					messenger2.callParent("command");
-				}
-				
-				if (1 < messengerParent.getReceiveLogSize()) {
+				if (0 < messenger.getReceiveLogSize()) {
 					cancel();
 					
-					String s1 = messengerParent.getReceiveLog(1);
-					debug.trace("messengerParent.getReceiveLog(1)	"+messengerParent.getReceiveLog(1));
-					assertTrue(s1.contains("command"));
+					assertEquals(1, messenger.childList.size());
+					
 					finishTest();
 				}
 			}
 		};
 		
 		timer.scheduleRepeating(INTERVAL_FPS);
-		
 	}
 	
-	public void testCallParentWithTagValue () {
-		final MessengerGWTImplement messengerParent = new MessengerGWTImplement(TEST_PARENTNAME2, this);
-		final MessengerGWTImplement messenger2 = new MessengerGWTImplement(TEST_ANOTHERONE, this);
-		messenger2.inputParent(TEST_PARENTNAME2);
+	/**
+	 * 件数ベースでの子供登録がなされているかどうかのテスト
+	 * 複数の子供
+	 */
+	public void testInputParentMultiNumbers () {
+		for (int i = 0; i < 10; i++) {
+			final MessengerGWTImplement messengerParent = new MessengerGWTImplement(TEST_CHILDNAME+"_"+i, this);
+			messengerParent.inputParent(messenger.getName());
+		}
 		
+		//親への信号を送って、帰って来た段階で初めてOKになる筈
 		delayTestFinish(INTERVAL_TIMEOUT_MS);
 		
 		Timer timer = new Timer() {
 			@Override
 			public void run() {
-				if (1 == messenger2.getReceiveLogSize() && messengerParent.getReceiveLogSize() == 1) {
-					messenger2.callParent("command",
-							messenger2.tagValue("タグ", "バリュー")
-					);
-				}
-				
-				if (1 < messengerParent.getReceiveLogSize()) {
+				if (messenger.childList.size() == 10) {
+					
+					for (JSONObject currentObj : messenger.childList) {
+						debug.trace("currentObj_"+currentObj);
+					}
 					cancel();
-					
-					String s1 = messengerParent.getReceiveLog(1);
-					assertTrue(s1.contains("command"));
-					
 					finishTest();
 				}
 			}
@@ -893,6 +1008,91 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		
 		timer.scheduleRepeating(INTERVAL_FPS);
 	}
+	
+	
+	
+	
+	/**
+	 * callParentの成立テスト
+	 */
+	public void testCallParent () {
+		setReceiver();
+		assertTrue(rec.getMessengerForTesting().getReceiveLogSize() == 0);
+		messenger.inputParent(rec.getMessengerForTesting().getName());
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		
+		Timer timer = new Timer() {
+			int step = 0;
+			@Override
+			public void run() {
+				
+				if (messenger.getReceiveLogSize() == 1 && step == 0) {
+					step++;
+					
+					//子から見た親
+					assertEquals(rec.getMessengerForTesting().getID(), messenger.getParentID());
+					assertEquals(rec.getMessengerForTesting().getName(), messenger.getParentName());
+					
+					
+					//親から見た子
+					assertTrue(rec.getMessengerForTesting().childList.size() == 1);
+					JSONObject currentChildList = rec.getMessengerForTesting().childList.get(0);
+					assertEquals(messenger.getID(), currentChildList.get(messenger.CHILDLIST_KEY_CHILD_ID).isString().stringValue());
+					assertEquals(messenger.getName(), currentChildList.get(messenger.CHILDLIST_KEY_CHILD_NAME).isString().stringValue());
+					
+					
+					assertTrue(messenger.getSendLogSize() == 1);//親への登録通信の一回のみ
+					messenger.callParent(TEST_COMMAND);
+					assertTrue(messenger.getSendLogSize() == 2);//親への通信
+				}
+				
+				if (rec.getMessengerForTesting().getReceiveLogSize() == 2 && step == 1) {
+					step++;
+					
+					cancel();
+					String s1 = rec.getMessengerForTesting().getReceiveLog(1);
+					assertTrue(s1.contains(TEST_COMMAND));
+						
+					finishTest();
+				}
+			}
+		};
+		timer.scheduleRepeating(INTERVAL_FPS);
+	}
+	
+	/**
+	 * TagValueを含んだテスト
+	 */
+//	public void testCallParentWithTagValue () {
+//		Object o = new Object();
+//		final MessengerGWTImplement parentMessenger = new MessengerGWTImplement(TEST_PARENTNAME+"tag", o);
+//		
+//		messenger.inputParent(parentMessenger.getName());
+//		
+//		delayTestFinish(INTERVAL_TIMEOUT_MS);
+//		
+//		Timer timer = new Timer() {
+//			int step = 0;
+//			@Override
+//			public void run() {
+//				if (messenger.getReceiveLogSize() == 1 && step == 0) {
+//					messenger.callParent(TEST_COMMAND,
+//					messenger.tagValue("tag", "value")		
+//					);
+//					step++;
+//				}
+//				if (parentMessenger.getReceiveLogSize() == 2 && step == 1) {
+//					cancel();
+//					
+//					String s1 = parentMessenger.getReceiveLog(1);
+//					assertTrue(s1.contains(TEST_COMMAND));
+//					finishTest();
+//				}
+//			}
+//		};
+//		timer.scheduleRepeating(INTERVAL_FPS);
+//	}
 	
 	/**
 	 * 自分へのメッセージングのテスト
@@ -1001,6 +1201,73 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	}
 	
 	
+	/**
+	 * 同名の子供が一人の場合の到達テスト
+	 */
+	public void tescCallOneChild () {
+		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
+		
+		messenger.call(rec.getMessengerForTesting().getName(), TEST_COMMAND);//この時点で親
+		
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (1 < messenger.getReceiveLogSize()) {
+					cancel();
+					
+					assertEquals(2,	rec.getMessengerForTesting().getReceiveLogSize());
+					
+					String s1 = rec.getMessengerForTesting().getReceiveLog(1);
+					assertTrue(s1.contains("command"));
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+	}
+	
+
+	/**
+	 * 同名の子供が複数の場合の到達テスト
+	 */
+	public void tescCallMultiChild () {
+		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
+		
+		for (int i = 0; i < 10; i++) {
+			Object o = new Object();
+			MessengerGWTImplement messenger2 = new MessengerGWTImplement(rec.getMessengerForTesting().getName(), o);
+			messenger2.inputParent(messenger.getName());
+		}
+		
+		messenger.call(rec.getMessengerForTesting().getName(), TEST_COMMAND);//この時点で11人の子供の親
+		
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (1 < messenger.getReceiveLogSize()) {
+					cancel();
+					
+					assertEquals(2,	rec.getMessengerForTesting().getReceiveLogSize());
+					assertEquals(10+10, messenger.childList.size());
+					
+					String s1 = rec.getMessengerForTesting().getReceiveLog(1);
+					assertTrue(s1.contains(TEST_COMMAND));
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+	}
+	
+	
 	
 	
 	
@@ -1028,12 +1295,10 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 //		
 //	}
 	
-	
-	
 	/**
-	 * 同期(受取手の不在か、存在した場合受取手のロック解除が確認されるまでロックする)メソッドのテスト
+	 * inputParentメソッドでの同期メソッドのログ件数チェック
 	 */
-	public void testSyncCall() {
+	public void testSyncInputParentLogNum () {
 		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
 			debug.trace("test_abort_testSyncCall_"+messenger.getMessengerStatus());
 			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
@@ -1042,12 +1307,54 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		}
 		
 		setReceiver();
+		messenger.sInputParent(rec.getMessengerForTesting().getName());
 		
-		messenger.sCall(TEST_RECEIVER, "command");
+		assertTrue(messenger.getReceiveLogSize() == 1);
+		assertTrue(messenger.getSendLogSize() == 1);
+		
+		assertTrue(rec.getMessengerForTesting().getReceiveLogSize() == 1);
+		assertTrue(rec.getMessengerForTesting().getSendLogSize() == 1);
+	}
+	
+	/**
+	 * 自分自身を同期メソッドで呼ぶ場合のログ件数テスト
+	 */
+	public void testSyncCallMyselfLogNum () {
+		messenger.sCallMyself(TEST_COMMAND);
+		assertTrue(messenger.getReceiveLogSize() == 1);
+		assertTrue(messenger.getSendLogSize() == 1);
+	}
+	
+	
+	/**
+	 * 自分自身を同期メソッドで呼ぶ場合のコマンド内容テスト
+	 */
+	public void testSyncCallMyselfExec () {
+		messenger.sCallMyself(TEST_COMMAND);
+		
+		String s1 = messenger.getReceiveLog(0);
+		assertTrue(s1.contains(TEST_COMMAND));
+	}
+	
+	
+	/**
+	 * 同期メソッドのコマンド伝達内容確認
+	 */
+	public void testSyncCallExec () {
+		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
+			debug.trace("test_abort_testSyncCall_"+messenger.getMessengerStatus());
+			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
+			
+			return;
+		}
+		
+		setReceiver();
+		messenger.sInputParent(rec.getMessengerForTesting().getName());
+		
+		messenger.sCall(TEST_RECEIVER, TEST_COMMAND);
 		
 		String s1 = rec.getMessengerForTesting().getReceiveLog(0);
-		assertTrue(s1.contains("command"));
-		
+		assertTrue(s1.contains(TEST_COMMAND));
 	}
 	
 	

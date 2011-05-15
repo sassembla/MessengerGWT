@@ -4,7 +4,6 @@ import com.kissaki.client.MessengerGWTCore.MessengerGWTImplement;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageMasterHub;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEvent;
-import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEventHandler;
 import com.kissaki.client.subFrame.debug.Debug;
 import com.kissaki.shared.FieldVerifier;
 import com.google.gwt.core.client.EntryPoint;

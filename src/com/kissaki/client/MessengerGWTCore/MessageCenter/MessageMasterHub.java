@@ -19,17 +19,15 @@ public class MessageMasterHub implements MessengerGWTInterface {
 	
 	int messageMasterStatus = MESSENGER_STATUS_NULL;
 	
-	private static MessageMasterHub hub = new MessageMasterHub();
-	
-	static MessageReceivedEventBus eventBus; 
+	private static MessageMasterHub hub;
+	private static MessageReceivedEventBus eventBus;//付随するイベントオブジェクト、これもシングルトン。
 	
 	/**
 	 * シングルトン取得メソッド
 	 * @return
 	 */
 	public static MessageMasterHub getMaster () {
-//		if (checker == null) checker = new MessageChecker();
-		if (eventBus == null) eventBus = new MessageReceivedEventBus(); 
+		if (hub == null) hub = new MessageMasterHub();
 		hub.setMessengerGlobalStatus(MESSENGER_STATUS_READY_FOR_INITIALIZE);
 		return hub;
 	}
@@ -64,6 +62,10 @@ public class MessageMasterHub implements MessengerGWTInterface {
 //			checker.addMessageReceivedEventHandler((MessageReceivedEventHandler)messengerSelf);
 //		}
 		
+		//一度設定すると、消せない！　この欠陥機構。
+		if (eventBus == null) {
+			eventBus = new MessageReceivedEventBus();
+		}
 		eventBus.addHandler(MessageReceivedEvent.MESSAGE_RECEIVED_EVENT_TYPE, messengerSelf);
 	}
 	
@@ -104,5 +106,9 @@ public class MessageMasterHub implements MessengerGWTInterface {
 		debug.assertTrue(false, "never call this method");
 	}
 
-
+	public void resetAllInvocationSetting() {
+		eventBus = null;
+		hub = null;
+	}
+	
 }

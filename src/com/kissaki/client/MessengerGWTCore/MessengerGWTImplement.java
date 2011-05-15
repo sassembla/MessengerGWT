@@ -67,16 +67,17 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	public final int MS_CATEGOLY_CALLCHILD			= 1;
 	public final int MS_CATEGOLY_CALLPARENT			= 2;
 	public final int MS_CATEGOLY_PARENTSEARCH		= 3;
-	public final int MS_CATEGOLY_PARENTSEARCH_RET	= 4;
-	public final int MS_CATEGOLY_REMOVE_PARENT		= 5;
-	public final int MS_CATEGOLY_REMOVE_CHILD		= 6;
+	public final int MS_CATEGOLY_PARENTSEARCH_S		= 4;
+	public final int MS_CATEGOLY_PARENTSEARCH_RET	= 5;
+	public final int MS_CATEGOLY_REMOVE_PARENT		= 6;
+	public final int MS_CATEGOLY_REMOVE_CHILD		= 7;
 	
 	private final String KEY_MESSENGER_NAME	= "MESSENGER_messengerName";
 	private final String KEY_MESSENGER_ID	= "MESSENGER_messengerID";
 	private final String KEY_MESSAGE_ID	= "MESSENGER_messageID";
 	
-	private final String KEY_TO_NAME			= "MESSENGER_to";
-	private final String KEY_TO_ID			= "MESSENGER_toID";
+	public final String KEY_TO_NAME			= "MESSENGER_to";
+	public final String KEY_TO_ID			= "MESSENGER_toID";
 	private final String KEY_MESSENGER_EXEC	= "MESSENGER_exec";
 	private final String KEY_MESSENGER_TAGVALUE_GROUP	= "MESSENGER_tagValue"; 
 	private final String KEY_PARENT_NAME	= "MESSENGER_pName";
@@ -85,7 +86,13 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	
 	List <JSONObject> sendList = null;
 	List <JSONObject> receiveList = null;
+	
+	public List <JSONObject> childList = null;
+	public final String CHILDLIST_KEY_CHILD_NAME = "CHILDLIST_KEY_CHILD_NAME";//JSONObjectの中に、kvsで入れる時の名称　JSONObject A = {CHILDLIST_KEY_CHILD_NAME:b,CHILDLIST_KEY_CHILD_ID:c}
+	public final String CHILDLIST_KEY_CHILD_ID = "CHILDLIST_KEY_CHILD_ID";
+	
 	private static MessageMasterHub masterHub;
+	
 	
 	/**
 	 * コンストラクタ
@@ -110,6 +117,8 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		
 		sendList = new ArrayList<JSONObject>();
 		receiveList = new ArrayList<JSONObject>();
+
+		childList = new ArrayList<JSONObject>(); 
 		
 		if (masterHub.getMessengerGlobalStatus() == MESSENGER_STATUS_READY_FOR_INITIALIZE) {
 			debug.trace("initialize");
@@ -291,16 +300,18 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 			debug.assertTrue(rootObject.get(KEY_MESSENGER_TAGVALUE_GROUP).isObject() != null, "KEY_MESSENGER_TAGVALUE_GROUP = null");
 		}
 		
-		
+		/*
+		 * 宛先存在チェック
+		 */
+		String toID = null;
+		{
+			debug.assertTrue(rootObject.get(KEY_TO_ID).isString() != null, "no KEY_TO_ID");
+			toID = rootObject.get(KEY_TO_ID).isString().stringValue();
+		}
 		
 		switch (categoly) {	
 		case MS_CATEGOLY_LOCAL:
 		{
-			/*
-			 * 宛先IDチェック
-			 */
-			String toID = null;
-			toID = rootObject.get(KEY_TO_ID).isString().stringValue();
 			if (toID.equals(getID())) {
 				addReceiveLog(rootObject);
 				receiveCenter(rootMessage);
@@ -309,28 +320,15 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 			return;
 			
 		case MS_CATEGOLY_CALLCHILD:
-//			if ([senderName isEqualToString:[self getMyParentName]]) {//送信者が自分の親の場合のみ、処理を進める
-//				
-//				[self saveLogForReceived:recievedLogDict];
-//				
-//				
-//				//設定されたbodyのメソッドを実行
-//				IMP func = [[self getMyBodyID] methodForSelector:[self getMyBodySelector]];
-//				(*func)([self getMyBodyID], [self getMyBodySelector], notification);
-//				return;
-//			}
-			addReceiveLog(rootObject);
-			receiveCenter(rootMessage);
-			
-			
+			if (toID.equals(getID())) {
+				addReceiveLog(rootObject);
+				receiveCenter(rootMessage);
+			}
 			return;
 			
 		case MS_CATEGOLY_CALLPARENT:
-			debug.assertTrue(rootObject.get(KEY_TO_ID).isString() != null, "no KEY_TO_ID");
-			String calledParentMSID = rootObject.get(KEY_TO_ID).isString().stringValue();
-			
 			//宛先MIDが自分のIDと一致するか
-			if (calledParentMSID.equals(getID())) {
+			if (toID.equals(getID())) {
 
 //				for (id key in [self getChildDict]) {//子供リストに含まれていなければ実行しないし、受け取らない。
 //					if ([[[self getChildDict] objectForKey:key] isEqualToString:senderName]) {
@@ -356,33 +354,52 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 			debug.assertTrue(rootObject.get(KEY_PARENT_NAME).isString() != null, "no KEY_PARENT_NAME");
 			String childSearchingName = rootObject.get(KEY_PARENT_NAME).isString().stringValue();
 			if (childSearchingName.equals(getName())) {
-				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_RET, UUID.uuid(8,16), getName(), getID(), fromName, fromID);
+				
+				JSONObject childInfo = new JSONObject();
+				childInfo.put(CHILDLIST_KEY_CHILD_ID, new JSONString(fromID));
+				childInfo.put(CHILDLIST_KEY_CHILD_NAME, new JSONString(fromName));
+				
+				childList.add(childInfo);
+				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_RET, UUID.uuid(8,16), getName(), getID(), fromName, fromID, "");
 				sendMessage(messageMap);
 				addReceiveLog(rootObject);
 			}
 			
 			return;
 			
+		case MS_CATEGOLY_PARENTSEARCH_S:
+			debug.assertTrue(rootObject.get(KEY_PARENT_NAME).isString() != null, "no KEY_PARENT_NAME");
+			String childSearchingName2 = rootObject.get(KEY_PARENT_NAME).isString().stringValue();
+			if (childSearchingName2.equals(getName())) {
+				JSONObject childInfo = new JSONObject();
+				childInfo.put(CHILDLIST_KEY_CHILD_ID, new JSONString(fromID));
+				childInfo.put(CHILDLIST_KEY_CHILD_NAME, new JSONString(fromName));
+				
+				childList.add(childInfo);
+				
+				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_RET, UUID.uuid(8,16), getName(), getID(), fromName, fromID, "");
+				masterHub.syncMessage(messageMap.toString());
+				addReceiveLog(rootObject);
+			}
+			break;
 			
 			
 		case MS_CATEGOLY_PARENTSEARCH_RET:
-		{
-			String toID = null;
-			toID = rootObject.get(KEY_TO_ID).isString().stringValue();
+			if (!parentName.equals(fromName)) {
+				return;
+			}
 			
 			if (toID.equals(getID())) {
 				if (parentID.equals("")) {
 					parentID = fromID;
 					addReceiveLog(rootObject);
 				} else {
-					//すでに親が居る旨のエラー、、
+//					debug.trace("もう別の親が居ます"+ "/fromID	"+fromID);
 				}
 				
 			}
 			
-			return;
-		}
-			
+			return;	
 			
 		case MS_CATEGOLY_REMOVE_CHILD:
 		case MS_CATEGOLY_REMOVE_PARENT:
@@ -416,8 +433,8 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param tagValue
 	 * @return
 	 */
-	public JSONObject getMessageObjectPreview (int messageCategoly, String receiverName, String command, int syncPattern, JSONObject ... tagValue) {
-		return getMessageStructure(messageCategoly, UUID.uuid(8,16), getName(), getID(), receiverName, command, tagValue);
+	public JSONObject getMessageObjectPreview (int messageCategoly, String receiverName, String receiverID, String command, JSONObject ... tagValue) {
+		return getMessageStructure(messageCategoly, UUID.uuid(8,16), getName(), getID(), receiverName, receiverID, command, tagValue);
 	}
 	
 	
@@ -445,8 +462,14 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param tagValue
 	 */
 	public void call(String toName, String command, JSONObject ... tagValue) {
-		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLCHILD, UUID.uuid(8,16), getName(), getID(), toName, command, tagValue);
-		sendMessage(messageMap);
+		debug.trace("call	childList	"+childList);
+		for (JSONObject currentChild : childList) {
+			if (currentChild.get(CHILDLIST_KEY_CHILD_NAME).isString().stringValue().equals(toName)) {
+				String toID = currentChild.get(CHILDLIST_KEY_CHILD_ID).isString().stringValue();
+				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLCHILD, UUID.uuid(8,16), getName(), getID(), toName, toID, command, tagValue);
+				sendMessage(messageMap);
+			}
+		}
 	}
 
 	/**
@@ -456,7 +479,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param tagValue
 	 */
 	public void callMyself(String command, JSONObject ... tagValue) {
-		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_LOCAL, UUID.uuid(8,16), getName(), getID(), getName(), command, tagValue);
+		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_LOCAL, UUID.uuid(8,16), getName(), getID(), getName(), getID(), command, tagValue);
 		sendMessage(messageMap);
 	}
 	
@@ -467,8 +490,9 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param tagValue
 	 */
 	public void callParent(String command, JSONObject ... tagValue) {
-		debug.assertTrue(parentID!="", "parentID yet applied");
-		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLPARENT, UUID.uuid(8,16), getName(), getID(), getParentName(), command, tagValue);
+		debug.assertTrue(parentName != "", "parentName not applied yet");
+		debug.assertTrue(parentID != "", "parentID not applied yet");
+		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLPARENT, UUID.uuid(8,16), getName(), getID(), getParentName(), getParentID(), command, tagValue);
 		sendMessage(messageMap);
 	}
 	
@@ -483,9 +507,14 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param tagValue
 	 */
 	public void sCall (String toName, String command, JSONObject ... tagValue) {
-		String messageID = UUID.uuid(8,16);
-		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLCHILD, messageID, getName(), getID(), toName, command, tagValue);
-		masterHub.syncMessage(messageMap.toString());
+		for (JSONObject currentChild : childList) {
+			if (currentChild.get(CHILDLIST_KEY_CHILD_NAME).isString().stringValue().equals(toName)) {
+				String toID = currentChild.get(CHILDLIST_KEY_CHILD_ID).isString().stringValue();
+				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLCHILD, UUID.uuid(8,16), getName(), getID(), toName, toID, command, tagValue);
+				masterHub.syncMessage(messageMap.toString());
+				addSendLog(messageMap);
+			}
+		}
 		
 //		Timer timer = new Timer() {
 //			
@@ -505,8 +534,9 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param tagValue
 	 */
 	public void sCallMyself(String command, JSONObject ... tagValue) {
-		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_LOCAL, UUID.uuid(8,16), getName(), getID(), getName(), command, tagValue);
+		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_LOCAL, UUID.uuid(8,16), getName(), getID(), getName(), getID(), command, tagValue);
 		masterHub.syncMessage(messageMap.toString());
+		addSendLog(messageMap);
 	}
 	
 	/**
@@ -517,9 +547,12 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param tagValue
 	 */
 	public void sCallParent(String command, JSONObject ... tagValue) {
-		debug.assertTrue(parentID!="", "parentID yet applied");
-		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLPARENT, UUID.uuid(8,16), getName(), getID(), getParentName(), command, tagValue);
+		debug.assertTrue(parentName != "", "parentName not applied yet");
+		debug.assertTrue(parentID != "", "parentID not applied yet");
+		
+		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLPARENT, UUID.uuid(8,16), getName(), getID(), getParentName(), getParentID(), command, tagValue);
 		masterHub.syncMessage(messageMap.toString());
+		addSendLog(messageMap);
 	}
 	
 	
@@ -647,6 +680,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 			String senderName,
 			String senderID,
 			String receiverName,
+			String receiverID,
 			String command,
 			JSONObject ... tagValue) {//JSONObject[] tagValue
 		JSONObject messageMap = new JSONObject();
@@ -667,26 +701,26 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 			
 		case MS_CATEGOLY_CALLCHILD:
 			messageMap.put(KEY_TO_NAME, new JSONString(receiverName));
+			messageMap.put(KEY_TO_ID, new JSONString(receiverID));
+
 			messageMap.put(KEY_MESSENGER_EXEC, new JSONString(command));
-			
-			debug.timeAssert("11/05/21 12:32:57", 0, "ブロードキャストのみに対応、個別の送付は未だ。");
-			//このキーを、対象限定の場合は付ければ良い。
-			messageMap.put(KEY_TO_ID, new JSONString(""));
-			
 			break;
 			
 		case MS_CATEGOLY_CALLPARENT:
-			debug.assertTrue(parentID != null, "parentID not yet inputted");
-			messageMap.put(KEY_TO_ID, new JSONString(parentID));
-			
 			
 			messageMap.put(KEY_TO_NAME, new JSONString(receiverName));
+			messageMap.put(KEY_TO_ID, new JSONString(receiverID));
+			
+			
 			messageMap.put(KEY_MESSENGER_EXEC, new JSONString(command));
 			
 			break;
 			
 		case MS_CATEGOLY_PARENTSEARCH:
+		case MS_CATEGOLY_PARENTSEARCH_S:
 			messageMap.put(KEY_TO_NAME, new JSONString(receiverName));
+			messageMap.put(KEY_TO_ID, new JSONString(receiverID));
+			
 			messageMap.put(KEY_MESSENGER_EXEC, new JSONString(command));
 			
 			messageMap.put(KEY_PARENT_NAME, new JSONString(receiverName));
@@ -697,10 +731,9 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 			messageMap.put(KEY_PARENT_ID, new JSONString(getID()));
 			
 			messageMap.put(KEY_TO_NAME, new JSONString(receiverName));
-			messageMap.put(KEY_TO_ID, new JSONString(command));
+			messageMap.put(KEY_TO_ID, new JSONString(receiverID));
 
 			messageMap.put(KEY_MESSENGER_EXEC, new JSONString(command));
-			
 			break;
 			
 		case MS_CATEGOLY_REMOVE_CHILD:
@@ -1053,18 +1086,37 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * 親子関係の構築を行う
 	 * @param input
 	 */
-	public void inputParent(String input) {
+	public void inputParent(String inputName) {
 		debug.assertTrue(parentName.equals(""), "already have parentName	すでに先約があるようです");
 		debug.assertTrue(parentID.equals(""), "already have parentID	すでに先約があるようです");
 		
-		debug.assertTrue(!input.equals(""), "空文字は親の名称として指定できません");
+		debug.assertTrue(!inputName.equals(""), "空文字は親の名称として指定できません");
 		
-		parentName = input;
+		parentName = inputName;
 		
 		String messageID = UUID.uuid(8,16);
-		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH, messageID, getName(), getID(), input, "");
+		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH, messageID, getName(), getID(), inputName, "", "");
 		sendMessage(messageMap);
 	}
+	
+
+	/**
+	 * 同期版
+	 * @param name
+	 */
+	public void sInputParent(String inputName) {
+		debug.assertTrue(parentName.equals(""), "already have parentName	すでに先約があるようです");
+		debug.assertTrue(parentID.equals(""), "already have parentID	すでに先約があるようです");
+		
+		debug.assertTrue(!inputName.equals(""), "空文字は親の名称として指定できません");
+		
+		parentName = inputName;
+		
+		String messageID = UUID.uuid(8,16);
+		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_S, messageID, getName(), getID(), inputName, "", "");
+		masterHub.syncMessage(messageMap.toString());
+	}
+
 
 	/**
 	 * この名称のMessengerのIDを探し、取得する
@@ -1081,13 +1133,25 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @return
 	 */
 	public String getParentName() {
-		debug.assertTrue(!parentName.equals(""), "まだ親のinputが行われていません");
+		debug.assertTrue(!parentName.equals(""), "まだ親のNameのinputが行われていません");
 		return parentName;
 	}
 	
+	/**
+	 * 入力されている親のIDを取得する
+	 * @return
+	 */
+	public String getParentID () {
+		debug.assertTrue(!parentName.equals(""), "まだ親のIDのinputが行われていません");
+		return parentID;
+	}
 	
-	
-
+	/**
+	 * テスト用の全体シャットダウン準備
+	 */
+	public void shutdownMessengerGWT () {
+		masterHub.resetAllInvocationSetting();
+	}
 
 	/**
 	 * 終了処理
@@ -1095,6 +1159,8 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	public void removeInvoke(Object root) {
 		debug.assertTrue(false, "此処に来てる、迷信でした。");
 	}
+
+
 
 
 	
