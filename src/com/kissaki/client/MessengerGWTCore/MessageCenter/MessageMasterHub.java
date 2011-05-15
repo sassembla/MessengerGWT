@@ -27,8 +27,10 @@ public class MessageMasterHub implements MessengerGWTInterface {
 	 * @return
 	 */
 	public static MessageMasterHub getMaster () {
-		if (hub == null) hub = new MessageMasterHub();
-		hub.setMessengerGlobalStatus(MESSENGER_STATUS_READY_FOR_INITIALIZE);
+		if (hub == null) {
+			hub = new MessageMasterHub();
+			hub.setMessengerGlobalStatus(MESSENGER_STATUS_READY_FOR_INITIALIZE);
+		}
 		return hub;
 	}
 	

@@ -15,7 +15,6 @@ import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Window;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageMasterHub;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEvent;
-//import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEventHandler;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedHandler;
 import com.kissaki.client.subFrame.debug.Debug;
 import com.kissaki.client.uuidGenerator.UUID;
@@ -30,16 +29,17 @@ import com.kissaki.client.uuidGenerator.UUID;
  * 
  * 
  * -親子関係でのMessaging範囲制限と明示：子から親の限定は完了、親から子の限定は未実装
- * -任意時間での遅延実行：難航、、、
+ * -任意時間での遅延実行：未作成
  * -同期：無し。未来永劫、yieldが万が一全ブラウザに積まれるまで無し
  * -クライアント間の通信：未作成
- * -クライアント-サーバ感の通信：未作成
+ * -クライアント-サーバ間の通信：未作成
  * 
  * @author ToruInoue
  */
 public class MessengerGWTImplement extends MessageReceivedHandler implements MessengerGWTInterface {
 	
-	static final String version = "0.8.0";//実働可能レベル 同期メソッドをテスト用として実装。テスト以外では使わない方がいい。 
+	static final String version = "0.8.1";//バグフィックス　テストが並列に行われていたのを解消。 
+//		"0.8.0";//実働可能レベル 同期メソッドをテスト用として実装。テスト以外では使わない方がいい。 
 //		"0.7.5";//親子関係設定、子からの親登録を実装。MIDでの関係しばり、子から親へのcallParentのみ完了。 callMyselfのID縛り完成。 
 //		"0.7.4";//カテゴリ判別のルールを追加、callMyselfでの限定を実装。 
 //		"0.7.3";//親子関係の設定/取得機能を追加、まだ制限は無し 
@@ -121,7 +121,6 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		childList = new ArrayList<JSONObject>(); 
 		
 		if (masterHub.getMessengerGlobalStatus() == MESSENGER_STATUS_READY_FOR_INITIALIZE) {
-			debug.trace("initialize");
 			setUpMessaging(masterHub);
 		}
 		
@@ -371,6 +370,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 			debug.assertTrue(rootObject.get(KEY_PARENT_NAME).isString() != null, "no KEY_PARENT_NAME");
 			String childSearchingName2 = rootObject.get(KEY_PARENT_NAME).isString().stringValue();
 			if (childSearchingName2.equals(getName())) {
+				addReceiveLog(rootObject);
 				JSONObject childInfo = new JSONObject();
 				childInfo.put(CHILDLIST_KEY_CHILD_ID, new JSONString(fromID));
 				childInfo.put(CHILDLIST_KEY_CHILD_NAME, new JSONString(fromName));
@@ -379,7 +379,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 				
 				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_RET, UUID.uuid(8,16), getName(), getID(), fromName, fromID, "");
 				masterHub.syncMessage(messageMap.toString());
-				addReceiveLog(rootObject);
+				addSendLog(messageMap);
 			}
 			break;
 			
@@ -462,7 +462,6 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param tagValue
 	 */
 	public void call(String toName, String command, JSONObject ... tagValue) {
-		debug.trace("call	childList	"+childList);
 		for (JSONObject currentChild : childList) {
 			if (currentChild.get(CHILDLIST_KEY_CHILD_NAME).isString().stringValue().equals(toName)) {
 				String toID = currentChild.get(CHILDLIST_KEY_CHILD_ID).isString().stringValue();
@@ -1115,6 +1114,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		String messageID = UUID.uuid(8,16);
 		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_S, messageID, getName(), getID(), inputName, "", "");
 		masterHub.syncMessage(messageMap.toString());
+		addSendLog(messageMap);
 	}
 
 

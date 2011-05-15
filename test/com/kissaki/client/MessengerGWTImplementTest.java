@@ -213,7 +213,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		);
 		
 		
-		String sendMessage = messenger.getSendLog(0);
+		String sendMessage = messenger.getSendLog(1);
 		String actualCommand = messenger.getCommand(sendMessage);
 		assertEquals(TEST_COMMAND, actualCommand);
 		
@@ -292,7 +292,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		);
 		
 		
-		String sendMessage = messenger.getSendLog(0);
+		String sendMessage = messenger.getSendLog(1);
 		String actualCommand = messenger.getCommand(sendMessage);
 		assertEquals(TEST_COMMAND, actualCommand);
 		
@@ -382,7 +382,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 			messenger.tagValue("キー4", 4)//JSONNumber
 		);
 		
-		String sendMessage = messenger.getSendLog(0);
+		String sendMessage = messenger.getSendLog(1);
 		
 		JSONValue actualTagValue1 = messenger.getValueForTag(TEST_TAG, sendMessage);
 		assertTrue(actualTagValue1.isNumber() != null);
@@ -509,7 +509,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		/*
 		 * 該当のTag-Valueを含んでいるか
 		 */
-		String s1 = messenger.getSendLog(0);
+		String s1 = messenger.getSendLog(1);
 		assertTrue(s1.contains("\""+ TEST_TAG +"\":1"));
 		assertTrue(s1.contains("\"キー2\":2.222"));
 		assertTrue(s1.contains("\"キー3\":\"val3\""));
@@ -536,7 +536,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		messenger.call(TEST_RECEIVER, TEST_COMMAND);
 		
 		//送信記録
-		String s1 = messenger.getSendLog(0);
+		String s1 = messenger.getSendLog(1);
 		assertTrue(s1.contains("testCommand"));
 	}
 	
@@ -1309,11 +1309,10 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		setReceiver();
 		messenger.sInputParent(rec.getMessengerForTesting().getName());
 		
-		assertTrue(messenger.getReceiveLogSize() == 1);
-		assertTrue(messenger.getSendLogSize() == 1);
+		assertEquals(1,messenger.getReceiveLogSize());
+		assertEquals(1,messenger.getSendLogSize());
 		
-		assertTrue(rec.getMessengerForTesting().getReceiveLogSize() == 1);
-		assertTrue(rec.getMessengerForTesting().getSendLogSize() == 1);
+		assertEquals(1,rec.getMessengerForTesting().getReceiveLogSize());
 	}
 	
 	/**
@@ -1321,8 +1320,8 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void testSyncCallMyselfLogNum () {
 		messenger.sCallMyself(TEST_COMMAND);
-		assertTrue(messenger.getReceiveLogSize() == 1);
-		assertTrue(messenger.getSendLogSize() == 1);
+		assertEquals(1,messenger.getReceiveLogSize());
+		assertEquals(1,messenger.getSendLogSize());
 	}
 	
 	
@@ -1338,58 +1337,68 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	
 	
 	/**
-	 * 同期メソッドのコマンド伝達内容確認
+	 * 同期での親子関係ログの一致
 	 */
-	public void testSyncCallExec () {
-		if (messenger.getMessengerStatus() != MESSENGER_STATUS_OK) {
-			debug.trace("test_abort_testSyncCall_"+messenger.getMessengerStatus());
-			assertEquals(MESSENGER_STATUS_NOT_SUPPORTED, messenger.getMessengerStatus());
-			
-			return;
-		}
-		
+	public void testSyncInputParentLog () {
 		setReceiver();
 		messenger.sInputParent(rec.getMessengerForTesting().getName());
 		
+		assertEquals(1,messenger.getSendLogSize());
+		assertEquals(1,messenger.getReceiveLogSize());
+		
+		assertEquals(rec.getMessengerForTesting().getName(), messenger.getParentName());
+		assertEquals(rec.getMessengerForTesting().getID(), messenger.getParentID());
+		
+		
+		assertEquals(1,rec.getMessengerForTesting().getSendLogSize());
+		assertEquals(1,rec.getMessengerForTesting().getReceiveLogSize());
+		
+		assertEquals(1, rec.getMessengerForTesting().childList.size());
+		
+		JSONObject currentChild = rec.getMessengerForTesting().childList.get(0);
+		String childName = currentChild.get(messenger.CHILDLIST_KEY_CHILD_NAME).isString().stringValue();
+		String childID = currentChild.get(messenger.CHILDLIST_KEY_CHILD_ID).isString().stringValue();
+		
+		assertEquals(messenger.getName(), childName);
+		assertEquals(messenger.getID(), childID);
+	}
+	
+	
+	/**
+	 * 親子間の同期メソッドのコマンド伝達内容確認
+	 */
+	public void testSyncCallExec () {
+		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
+		
 		messenger.sCall(TEST_RECEIVER, TEST_COMMAND);
 		
-		String s1 = rec.getMessengerForTesting().getReceiveLog(0);
+		assertEquals(2, rec.getMessengerForTesting().getReceiveLogSize());
+		
+		String s1 = rec.getMessengerForTesting().getReceiveLog(1);
 		assertTrue(s1.contains(TEST_COMMAND));
 	}
 	
 	
-
-	
-	/*
-	 * 親子関係がないので、どんなテストが必要か、列記する
-	 * 
-	 * 自体のメソッドテスト
-	 * 
-	 * 初期化
-	 * 		自分の名称設定
-	 * 		
-	 * 
-	 * 送信内容設定
-	 *		送信コマンド設定
-	 * 		送信元名設定
-	 * 		送信先名設定
-	 * 		
-	 * 
-	 * A-B間の送信
-	 * 宛先へと届いているテスト
-	 * 宛先へと届いている内容のテスト
-	 * 		Bの受信コマンド設定
-	 * 		Bの受信内容設定
-	 * 
-	 * 宛先でない場所に届いていないテスト
-	 * テストログの充実
-	 * 	→ログでチェックする事になると思う
-	 * 
-	 * 同期バージョンのテスト
-	 * 
+	/**
+	 * 親子間の同期メソッドのコマンド+タグ付き伝達内容確認
 	 */
+	public void testSyncCallExecWithTag () {
+		setReceiver();
+		rec.getMessengerForTesting().sInputParent(messenger.getName());
+		
+		messenger.sCall(TEST_RECEIVER, TEST_COMMAND,
+				messenger.tagValue("タグ", "バリュー")
+		);
+		
+		assertEquals(2, rec.getMessengerForTesting().getReceiveLogSize());
+		
+		String s1 = rec.getMessengerForTesting().getReceiveLog(1);
+		assertTrue(s1.contains(TEST_COMMAND));
+		assertTrue(s1.contains("タグ"));
+		assertTrue(s1.contains("バリュー"));
+	}
 	
-
 	
 	
 }
