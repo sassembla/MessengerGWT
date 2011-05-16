@@ -38,7 +38,8 @@ import com.kissaki.client.uuidGenerator.UUID;
  */
 public class MessengerGWTImplement extends MessageReceivedHandler implements MessengerGWTInterface {
 	
-	static final String version = "0.8.1";//バグフィックス　テストが並列に行われていたのを解消。 
+	static final String version = "0.8.2";//親が設定されたタイミングで、TRIGGERが
+//		"0.8.1";//バグフィックス　テストが並列に行われていたのを解消。 
 //		"0.8.0";//実働可能レベル 同期メソッドをテスト用として実装。テスト以外では使わない方がいい。 
 //		"0.7.5";//親子関係設定、子からの親登録を実装。MIDでの関係しばり、子から親へのcallParentのみ完了。 callMyselfのID縛り完成。 
 //		"0.7.4";//カテゴリ判別のルールを追加、callMyselfでの限定を実装。 
@@ -90,6 +91,9 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	public List <JSONObject> childList = null;
 	public final String CHILDLIST_KEY_CHILD_NAME = "CHILDLIST_KEY_CHILD_NAME";//JSONObjectの中に、kvsで入れる時の名称　JSONObject A = {CHILDLIST_KEY_CHILD_NAME:b,CHILDLIST_KEY_CHILD_ID:c}
 	public final String CHILDLIST_KEY_CHILD_ID = "CHILDLIST_KEY_CHILD_ID";
+	
+	public final String TRIGGER_PARENTCONNECTED = "TRIGGER_PARENTCONNECTED";
+	
 	
 	private static MessageMasterHub masterHub;
 	
@@ -359,7 +363,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 				childInfo.put(CHILDLIST_KEY_CHILD_NAME, new JSONString(fromName));
 				
 				childList.add(childInfo);
-				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_RET, UUID.uuid(8,16), getName(), getID(), fromName, fromID, "");
+				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_RET, UUID.uuid(8,16), getName(), getID(), fromName, fromID, TRIGGER_PARENTCONNECTED);
 				sendMessage(messageMap);
 				addReceiveLog(rootObject);
 			}
@@ -377,7 +381,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 				
 				childList.add(childInfo);
 				
-				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_RET, UUID.uuid(8,16), getName(), getID(), fromName, fromID, "");
+				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_RET, UUID.uuid(8,16), getName(), getID(), fromName, fromID, TRIGGER_PARENTCONNECTED);
 				masterHub.syncMessage(messageMap.toString());
 				addSendLog(messageMap);
 			}
@@ -392,7 +396,9 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 			if (toID.equals(getID())) {
 				if (parentID.equals("")) {
 					parentID = fromID;
+					
 					addReceiveLog(rootObject);
+					receiveCenter(rootMessage);
 				} else {
 //					debug.trace("もう別の親が居ます"+ "/fromID	"+fromID);
 				}
@@ -1153,16 +1159,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		masterHub.resetAllInvocationSetting();
 	}
 
-	/**
-	 * 終了処理
-	 */
-	public void removeInvoke(Object root) {
-		debug.assertTrue(false, "此処に来てる、迷信でした。");
-	}
-
-
-
-
+	
 	
 	
 	

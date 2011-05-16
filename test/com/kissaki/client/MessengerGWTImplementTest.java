@@ -46,6 +46,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	int INTERVAL_TIMEOUT_MS = 500;
 	int INTERVAL_FPS = 10;
 	
+	int isParentExist = 0;
 	
 	/**
 	 * コンストラクタ
@@ -70,6 +71,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void gwtSetUp () {
 		debug.trace("setup_"+this);
+		isParentExist = 0;
 		currentMaster = MessageMasterHub.getMaster();//この時点でマスターが存在すれば良い
 		debug.trace("setup_2_"+currentMaster);
 		messenger = new MessengerGWTImplement(TEST_MYNAME, this);
@@ -86,6 +88,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		rec.receiver = null;
 		rec = null;
 		messenger = null;
+		isParentExist = 0;
 		debug.trace("teardown");
 	}
 	
@@ -102,7 +105,11 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	@Override
 	public void receiveCenter(String message) {
-		
+		String exec = messenger.getCommand(message);
+		if (exec.equals(messenger.TRIGGER_PARENTCONNECTED)) {
+			debug.trace("親からの返答がきたよ！");
+			isParentExist = 1;
+		}
 	}
 	
 	public void testGetMessengerStatus () {
@@ -1400,5 +1407,41 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	}
 	
 	
+	/**
+	 * 非同期inputParent
+	 * 親が居るかどうか、について、TRIGGER発行をするので、その受け取りテスト
+	 */
+	public void testIsParentExist () {
+		setReceiver();
+		messenger.inputParent(rec.getMessengerForTesting().getName());
+		assertEquals(0, isParentExist);
+		
+		delayTestFinish(INTERVAL_TIMEOUT_MS);
+		Timer timer = new Timer() {
+			@Override
+			public void run() {
+				if (0 < isParentExist) {
+					cancel();
+					
+					assertEquals(1,	messenger.getReceiveLogSize());
+					assertEquals(1, rec.getMessengerForTesting().childList.size());
+					finishTest();
+				}
+			}
+		};
+		
+		timer.scheduleRepeating(INTERVAL_FPS);
+	}
+	
+	/**
+	 * 同期inputParent
+	 * 親が居るかどうか、について、TRIGGER発行をするので、その受け取りテスト
+	 */
+	public void testIsParentExistSync () {
+		setReceiver();
+		messenger.sInputParent(rec.getMessengerForTesting().getName());
+		
+		assertEquals(1, isParentExist);
+	}
 	
 }

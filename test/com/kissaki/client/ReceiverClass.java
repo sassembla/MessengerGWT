@@ -1,6 +1,5 @@
 package com.kissaki.client;
 
-import com.google.gwt.user.client.Window;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTImplement;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
 import com.kissaki.client.subFrame.debug.Debug;
@@ -25,6 +24,11 @@ public class ReceiverClass implements MessengerGWTInterface {
 	
 	@Override
 	public void receiveCenter(String message) {
-		debug.trace("receive_message_"+message);
+		String exec = receiver.getCommand(message);
+		if (exec.equals(receiver.TRIGGER_PARENTCONNECTED)) {
+			debug.trace("親からの返答がきたよ！");
+		}
 	}
+	
+	
 }
