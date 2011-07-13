@@ -446,7 +446,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	
 	
 	/**
-	 * メッセージ送信メソッド
+	 * 非同期メッセージ送信メソッド
 	 * @param message
 	 */
 	private void sendMessage(JSONObject message) {
@@ -504,8 +504,8 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 
 	
 	/**
-	 * テスト時のみ使用する、同期メッセージング
-	 * イベントでの実装が、他と同レベルなソースコードに成る事が、どうしても欠点として映る。
+	 * 同期メッセージング
+	 * イベントでの実装が、他と同レベルなコンテキストに書かれてしまう事が、どうしても欠点として映る。
 	 * 
 	 * @param toName
 	 * @param command
