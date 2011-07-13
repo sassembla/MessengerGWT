@@ -450,7 +450,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param message
 	 */
 	private void sendMessage(JSONObject message) {
-		debug.timeAssert("11/05/13 19:04:00", 100000, "sendMessage アドレスが変わったら使えない、張り直しなどの対策が必要なところ");
+		debug.timeAssert("11/07/13 19:45:43", 100000, "sendMessage アドレスが変わったら使えない、張り直しなどの対策が必要なところ");
 
 		String href = Window.Location.getHref();
 		postMessage(message.toString(), href);
