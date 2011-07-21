@@ -24,7 +24,8 @@ import com.google.gwt.user.client.Window;
  *
  */
 public class Debug {
-	String VERSION = "0.6.4";//TimeAssertの管理フラッグ追加 
+	String VERSION = "0.6.5";//timeAssertの表示を見やすく調整 
+//		"0.6.4";//TimeAssertの管理フラッグ追加 
 //		"0.6.3_11/05/10 21:42:04";////TimeAssertの文言の調整、BOMBのメッセージをBOMB直前に表示するように
 //		"0.6.2_11/05/06 18:22:16";//TimeAssertの文言の調整 
 //		"0.6.1_11/05/05 9:02:09";
@@ -133,9 +134,9 @@ public class Debug {
 		
 		if (isTraceSet(DEBUG_TIMEASSERT_ON)) { 
 			if (now < timeMine) {
-				assertDebugTrace(comment+"	/left: "+(timeMine - now)+"msec");
+				assertDebugTrace("", comment+"	/left: "+(timeMine - now)+"msec");
 			} else {
-				assertDebugTrace("*BOMB*"+attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
+				assertDebugTrace("*BOMB*",attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
 				throw new RuntimeException("*BOMB*"+attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
 			}
 		}
@@ -287,8 +288,8 @@ public class Debug {
 	 * timeAssertから発行する標準出力
 	 * @param string
 	 */
-	private void assertDebugTrace (String string) {
-		if (isDebug()) System.out.println("*timeAssert* "+attr + TRACE_MESSAGE + string);
+	private void assertDebugTrace (String head, String string) {
+		if (isDebug()) System.out.println(head+"	*timeAssert* "+attr + TRACE_MESSAGE + string);
 	}
 
 	
