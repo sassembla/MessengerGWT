@@ -496,7 +496,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param tagValue
 	 */
 	public String callParent(String command, JSONObject ... tagValue) {
-		debug.assertTrue(parentName != "", "parentName not applied yet");
+		debug.assertTrue(parentName != "", "ASYNC parentName not applied yet");
 		debug.assertTrue(parentID != "", "ASYNC	parentID not applied yet");
 		
 		String messageID = UUID.uuid(8,16);

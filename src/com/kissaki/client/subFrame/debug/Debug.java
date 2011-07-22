@@ -3,6 +3,7 @@ package com.kissaki.client.subFrame.debug;
 import java.util.Date;
 
 import com.google.gwt.i18n.client.DateTimeFormat;
+import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Window;
 
 
@@ -24,7 +25,8 @@ import com.google.gwt.user.client.Window;
  *
  */
 public class Debug {
-	String VERSION = "0.6.5";//timeAssertの表示を見やすく調整 
+	String VERSION = "0.6.6";//assertNotNullメソッドを追加、エラー出力をJava assertに変更　timeAssertの内容をassertに変更 
+//		"0.6.5";//timeAssertの表示を見やすく調整 BOMBを行頭に表示
 //		"0.6.4";//TimeAssertの管理フラッグ追加 
 //		"0.6.3_11/05/10 21:42:04";////TimeAssertの文言の調整、BOMBのメッセージをBOMB直前に表示するように
 //		"0.6.2_11/05/06 18:22:16";//TimeAssertの文言の調整 
@@ -72,7 +74,7 @@ public class Debug {
 	 */
 	private void initialize(Object obj) {
 		addTraceSetting(DEBUG_EVENT_ON);//クライアント内のデバッグ表示用
-//		addTraceSetting(DEBUG_TIMEASSERT_ON);
+		addTraceSetting(DEBUG_TIMEASSERT_ON);
 //		addTraceSetting(DEBUG_ALERT_ON);//JavaScriptでのどうしようも無い時のデバッグ用
 		
 		attr = ""+obj.getClass();
@@ -131,12 +133,13 @@ public class Debug {
 		long timeMine = date1.getTime()+timeLimit*1000;
 		Date dateDefault = new Date();
 		long now = dateDefault.getTime();
-		
 		if (isTraceSet(DEBUG_TIMEASSERT_ON)) { 
 			if (now < timeMine) {
+				
 				assertDebugTrace("", comment+"	/left: "+(timeMine - now)+"msec");
 			} else {
 				assertDebugTrace("*BOMB*",attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
+				assert false;
 				throw new RuntimeException("*BOMB*"+attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
 			}
 		}
@@ -159,6 +162,7 @@ public class Debug {
 		
 		selfDebugTrace("isDebug_ no reason through here");
 		
+		assert (false);
 		return true;//到達する場合何かヤバいコード
 	}
 
@@ -256,6 +260,7 @@ public class Debug {
 	public boolean assertTrue(boolean b, String string) {
 		if (!b) {
 			selfDebugTrace(attr + ASSERT_MESSAGE + string);
+			assert false;
 //			if (isTraceSet(DEBUG_EVENT_ON)) ToDoAppDelegate.getDelegate().fireEvent(new DebugEvent(attr + ASSERT_MESSAGE + string));
 			throw new RuntimeException(attr + ASSERT_MESSAGE + string);
 		}
@@ -263,6 +268,16 @@ public class Debug {
 		return true;
 	}
 
+	
+	/**
+	 * notNullをチェックする
+	 * @param obj
+	 * @param string
+	 */
+	public void assertNotNull(Object obj, String string) {
+		if (obj != null) return;
+		assertTrue(false, string);
+	}
 
 	
 	
@@ -291,6 +306,9 @@ public class Debug {
 	private void assertDebugTrace (String head, String string) {
 		if (isDebug()) System.out.println(head+"	*timeAssert* "+attr + TRACE_MESSAGE + string);
 	}
+
+
+
 
 	
 }
