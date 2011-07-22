@@ -38,7 +38,8 @@ import com.kissaki.client.uuidGenerator.UUID;
  */
 public class MessengerGWTImplement extends MessageReceivedHandler implements MessengerGWTInterface {
 	
-	static final String version = "0.8.2";//親が設定されたタイミングで、TRIGGERが
+	static final String version = "0.8.3";//親子登録のTRIGGERがreceiveCenterまで貫通してしまうバグを解消
+//		"0.8.2";//親が設定されたタイミングで、TRIGGERを発生させるよう調整
 //		"0.8.1";//バグフィックス　テストが並列に行われていたのを解消。 
 //		"0.8.0";//実働可能レベル 同期メソッドをテスト用として実装。テスト以外では使わない方がいい。 
 //		"0.7.5";//親子関係設定、子からの親登録を実装。MIDでの関係しばり、子から親へのcallParentのみ完了。 callMyselfのID縛り完成。 
@@ -114,7 +115,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		parentID = "";
 		
 
-		debug.timeAssert("11/05/15 9:02:09", 10000, "わざわざシングルトン使ってる。Ginとか使って祖結合に切り替えたい");
+		debug.timeAssert("11/07/23 19:45:43", 10000, "わざわざシングルトン使ってる。Ginとか使って祖結合に切り替えたい");
 		if (masterHub == null) {
 			masterHub = MessageMasterHub.getMaster();
 		}
@@ -396,9 +397,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 			if (toID.equals(getID())) {
 				if (parentID.equals("")) {
 					parentID = fromID;
-					
 					addReceiveLog(rootObject);
-					receiveCenter(rootMessage);
 				} else {
 //					debug.trace("もう別の親が居ます"+ "/fromID	"+fromID);
 				}
@@ -450,7 +449,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param message
 	 */
 	private void sendMessage(JSONObject message) {
-		debug.timeAssert("11/07/13 19:45:43", 100000, "sendMessage アドレスが変わったら使えない、張り直しなどの対策が必要なところ");
+		debug.timeAssert("11/07/21 11:54:19", 100000, "sendMessage アドレスが変わったら使えない、張り直しなどの対策が必要なところ");
 
 		String href = Window.Location.getHref();
 		postMessage(message.toString(), href);
@@ -483,9 +482,11 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param command
 	 * @param tagValue
 	 */
-	public void callMyself(String command, JSONObject ... tagValue) {
-		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_LOCAL, UUID.uuid(8,16), getName(), getID(), getName(), getID(), command, tagValue);
+	public String callMyself(String command, JSONObject ... tagValue) {
+		String messageID = UUID.uuid(8,16);
+		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_LOCAL, messageID, getName(), getID(), getName(), getID(), command, tagValue);
 		sendMessage(messageMap);
+		return messageID;
 	}
 	
 	/**
@@ -494,11 +495,14 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param command
 	 * @param tagValue
 	 */
-	public void callParent(String command, JSONObject ... tagValue) {
+	public String callParent(String command, JSONObject ... tagValue) {
 		debug.assertTrue(parentName != "", "parentName not applied yet");
-		debug.assertTrue(parentID != "", "parentID not applied yet");
-		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLPARENT, UUID.uuid(8,16), getName(), getID(), getParentName(), getParentID(), command, tagValue);
+		debug.assertTrue(parentID != "", "ASYNC	parentID not applied yet");
+		
+		String messageID = UUID.uuid(8,16);
+		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLPARENT, messageID, getName(), getID(), getParentName(), getParentID(), command, tagValue);
 		sendMessage(messageMap);
+		return messageID;
 	}
 	
 
@@ -552,8 +556,8 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param tagValue
 	 */
 	public void sCallParent(String command, JSONObject ... tagValue) {
-		debug.assertTrue(parentName != "", "parentName not applied yet");
-		debug.assertTrue(parentID != "", "parentID not applied yet");
+		debug.assertTrue(parentName != "", "SYNC	parentName not applied yet");
+		debug.assertTrue(parentID != "", "SYNC	parentID not applied yet");
 		
 		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLPARENT, UUID.uuid(8,16), getName(), getID(), getParentName(), getParentID(), command, tagValue);
 		masterHub.syncMessage(messageMap.toString());
@@ -1022,6 +1026,15 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	}
 
 	/**
+	 * messageから、TagValue部分をJSONObjectに変換して返す
+	 * @param message
+	 * @return
+	 */
+	public JSONObject getJSONObjetFromMessage(String message) {
+		return JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_TAGVALUE_GROUP).isObject();
+	}
+	
+	/**
 	 * バリューをタグから取得する
 	 * 存在しない場合アサーションエラー
 	 * @param message
@@ -1029,11 +1042,13 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @return
 	 */
 	public JSONValue getValueForTag(String tag, String message) {
-		JSONObject obj = JSONParser.parseStrict(message).isObject().get(KEY_MESSENGER_TAGVALUE_GROUP).isObject();
+		JSONObject obj = getJSONObjetFromMessage(message);
 		debug.assertTrue(obj.containsKey(tag), "no-	" + tag + "	-contains");
 		
 		return obj.get(tag);
 	}
+	
+	
 	
 	/**
 	 * tagValueグループに含まれるtagをリストとして取得する

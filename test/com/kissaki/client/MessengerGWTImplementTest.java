@@ -48,7 +48,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	int INTERVAL_TIMEOUT_MS = 500;
 	int INTERVAL_FPS = 10;
 	
-	int isParentExist = 0;
 	
 	/**
 	 * コンストラクタ
@@ -73,7 +72,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 */
 	public void gwtSetUp () {
 		debug.trace("setup_"+this);
-		isParentExist = 0;
 		currentMaster = MessageMasterHub.getMaster();//この時点でマスターが存在すれば良い
 		debug.trace("setup_2_"+currentMaster);
 		messenger = new MessengerGWTImplement(TEST_MYNAME, this);
@@ -90,7 +88,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		rec.receiver = null;
 		rec = null;
 		messenger = null;
-		isParentExist = 0;
 		debug.trace("teardown");
 	}
 	
@@ -106,13 +103,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * メッセージ受信時に呼ばれるメソッド
 	 */
 	@Override
-	public void receiveCenter(String message) {
-		String exec = messenger.getCommand(message);
-		if (exec.equals(messenger.TRIGGER_PARENTCONNECTED)) {
-			debug.trace("親からの返答がきたよ！");
-			isParentExist = 1;
-		}
-	}
+	public void receiveCenter(String message) {}
 	
 	public void testGetMessengerStatus () {
 		int i = messenger.getMessengerStatus();
@@ -1416,17 +1407,40 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	public void testIsParentExist () {
 		setReceiver();
 		messenger.inputParent(rec.getMessengerForTesting().getName());
-		assertEquals(0, isParentExist);
+		assertEquals(0, messenger.getReceiveLogSize());
 		
 		delayTestFinish(INTERVAL_TIMEOUT_MS);
 		Timer timer = new Timer() {
 			@Override
 			public void run() {
-				if (0 < isParentExist) {
+				if (0 < messenger.getReceiveLogSize()) {
 					cancel();
 					
 					assertEquals(1,	messenger.getReceiveLogSize());
+					String result = messenger.getReceiveLog(0);
+					
+					debug.trace("result	"+result);
+					JSONObject root = JSONParser.parseStrict(result).isObject();
+					/*
+					 * {"MESSENGER_messengerName":"receiver", "MESSENGER_messengerID":"8A9AFB70", "MESSENGER_messageID":"E047DA05", "KEY_MESSAGE_CATEGOLY":5, "MESSENGER_pName":"receiver", "MESSENGER_pID":"8A9AFB70", "MESSENGER_to":"sender", "MESSENGER_toID":"742B6FB5", "MESSENGER_exec":"TRIGGER_PARENTCONNECTED", "MESSENGER_tagValue":{}
+					 * }
+					 */
+					
+					//子供が持っている親IDが、想定通りの親の物
+					String currentParrentID = root.get("MESSENGER_pID").isString().stringValue();
+					assertEquals(rec.getMessengerForTesting().getID(), currentParrentID);
+					
+					//子供が持っている親の名前が、想定通りの親の物
+					String currentParrentName = root.get("MESSENGER_pName").isString().stringValue();
+					assertEquals(rec.getMessengerForTesting().getName(), currentParrentName);
+					
+					
+					//トリガーの受付チェック
+					String exec = messenger.getCommand(result);
+					assertEquals(messenger.TRIGGER_PARENTCONNECTED, exec);
+					
 					assertEquals(1, rec.getMessengerForTesting().childList.size());
+					
 					finishTest();
 				}
 			}
@@ -1443,7 +1457,30 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		setReceiver();
 		messenger.sInputParent(rec.getMessengerForTesting().getName());
 		
-		assertEquals(1, isParentExist);
+		assertEquals(1, messenger.getReceiveLogSize());
+		String result = messenger.getReceiveLog(0);
+		
+		debug.trace("result	"+result);
+		JSONObject root = JSONParser.parseStrict(result).isObject();
+		/*
+		 * {"MESSENGER_messengerName":"receiver", "MESSENGER_messengerID":"8A9AFB70", "MESSENGER_messageID":"E047DA05", "KEY_MESSAGE_CATEGOLY":5, "MESSENGER_pName":"receiver", "MESSENGER_pID":"8A9AFB70", "MESSENGER_to":"sender", "MESSENGER_toID":"742B6FB5", "MESSENGER_exec":"TRIGGER_PARENTCONNECTED", "MESSENGER_tagValue":{}
+		 * }
+		 */
+		
+		//子供が持っている親IDが、想定通りの親の物
+		String currentParrentID = root.get("MESSENGER_pID").isString().stringValue();
+		assertEquals(rec.getMessengerForTesting().getID(), currentParrentID);
+		
+		//子供が持っている親の名前が、想定通りの親の物
+		String currentParrentName = root.get("MESSENGER_pName").isString().stringValue();
+		assertEquals(rec.getMessengerForTesting().getName(), currentParrentName);
+		
+		
+		//トリガーの受付チェック
+		String exec = messenger.getCommand(result);
+		assertEquals(messenger.TRIGGER_PARENTCONNECTED, exec);
+		
+		assertEquals(1, rec.getMessengerForTesting().childList.size());
 	}
 	
 }
