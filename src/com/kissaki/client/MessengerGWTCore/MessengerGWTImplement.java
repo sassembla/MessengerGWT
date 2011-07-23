@@ -38,7 +38,8 @@ import com.kissaki.client.uuidGenerator.UUID;
  */
 public class MessengerGWTImplement extends MessageReceivedHandler implements MessengerGWTInterface {
 	
-	static final String version = "0.8.3";//親子登録のTRIGGERがreceiveCenterまで貫通してしまうバグを解消
+	static final String version = "0.8.4";//テスト用にMessengerのAspectをリセットする機構を簡易化 setUpMessengerAspectForTesting() と tearDownMessengerAspectForTesting()
+//		"0.8.3";//親子登録のTRIGGERがreceiveCenterまで貫通してしまうバグを解消
 //		"0.8.2";//親が設定されたタイミングで、TRIGGERを発生させるよう調整
 //		"0.8.1";//バグフィックス　テストが並列に行われていたのを解消。 
 //		"0.8.0";//実働可能レベル 同期メソッドをテスト用として実装。テスト以外では使わない方がいい。 
@@ -365,7 +366,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 				
 				childList.add(childInfo);
 				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_RET, UUID.uuid(8,16), getName(), getID(), fromName, fromID, TRIGGER_PARENTCONNECTED);
-				sendMessage(messageMap);
+				sendAsyncMessage(messageMap);
 				addReceiveLog(rootObject);
 			}
 			
@@ -448,9 +449,8 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * 非同期メッセージ送信メソッド
 	 * @param message
 	 */
-	private void sendMessage(JSONObject message) {
-		debug.timeAssert("11/07/21 11:54:19", 100000, "sendMessage アドレスが変わったら使えない、張り直しなどの対策が必要なところ");
-
+	private void sendAsyncMessage(JSONObject message) {
+		
 		String href = Window.Location.getHref();
 		postMessage(message.toString(), href);
 		
@@ -471,7 +471,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 			if (currentChild.get(CHILDLIST_KEY_CHILD_NAME).isString().stringValue().equals(toName)) {
 				String toID = currentChild.get(CHILDLIST_KEY_CHILD_ID).isString().stringValue();
 				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLCHILD, UUID.uuid(8,16), getName(), getID(), toName, toID, command, tagValue);
-				sendMessage(messageMap);
+				sendAsyncMessage(messageMap);
 			}
 		}
 	}
@@ -485,7 +485,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	public String callMyself(String command, JSONObject ... tagValue) {
 		String messageID = UUID.uuid(8,16);
 		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_LOCAL, messageID, getName(), getID(), getName(), getID(), command, tagValue);
-		sendMessage(messageMap);
+		sendAsyncMessage(messageMap);
 		return messageID;
 	}
 	
@@ -501,14 +501,14 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		
 		String messageID = UUID.uuid(8,16);
 		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLPARENT, messageID, getName(), getID(), getParentName(), getParentID(), command, tagValue);
-		sendMessage(messageMap);
+		sendAsyncMessage(messageMap);
 		return messageID;
 	}
 	
 
 	
 	/**
-	 * 同期メッセージング
+	 * EventBus実装での同期メッセージング
 	 * イベントでの実装が、他と同レベルなコンテキストに書かれてしまう事が、どうしても欠点として映る。
 	 * 
 	 * @param toName
@@ -524,19 +524,10 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 				addSendLog(messageMap);
 			}
 		}
-		
-//		Timer timer = new Timer() {
-//			
-//			@Override
-//			public void run() {
-//				debug.trace("ここだ");
-//			}
-//		};
-//		timer.scheduleRepeating(100);
 	}
 	
 	/**
-	 * テスト時のみ使用する、同期メッセージング
+	 * EventBus実装での同期メッセージング
 	 * 同期メッセージを自分へと送信するメソッド
 	 * 自分へのメッセージング
 	 * @param command
@@ -549,7 +540,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	}
 	
 	/**
-	 * テスト時のみ使用する、同期メッセージング
+	 * EventBus実装での同期メッセージング
 	 * 同期メッセージを親へと送信するメソッド
 	 * 親へのメッセージング
 	 * @param command
@@ -662,6 +653,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param href
 	 */
 	private void postMessage (String message, String href) {
+		debug.timeAssert("11/07/23 11:54:19", 1000000, "postMessage アドレスが変わったら使えない、張り直しなどの対策が必要なところ");
 		post(message, href);
 	}
 	
@@ -1116,7 +1108,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		
 		String messageID = UUID.uuid(8,16);
 		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH, messageID, getName(), getID(), inputName, "", "");
-		sendMessage(messageMap);
+		sendAsyncMessage(messageMap);
 	}
 	
 
@@ -1167,37 +1159,31 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		return parentID;
 	}
 	
+	
+	
 	/**
-	 * テスト用の全体シャットダウン準備
+	 * 同期メッセージング(試作)
 	 */
-	public void shutdownMessengerGWT () {
-		masterHub.resetAllInvocationSetting();
+	private void sendSyncMessage(JSONObject message) {
+		debug.timeAssert("11/07/23 8:40:07", 0, "yieldが正式に全ブラウザに実装されるまでは使えない。");
+		
+		String href = Window.Location.getHref();
+		postMessage(message.toString(), href);
+		
+		//この辺にyieldでメッセージ受信の受付を行えば良い
+		
+		addSendLog(message);
 	}
 
-	
-	
-	
-	
-//	/**
-//	 * 同期call
-//	 * tagValue無し
-//	 * @param receiverName
-//	 * @param command
-//	 */
-//	private void sendSyncMessage(int messageCategoly, String receiverName, String command, JSONObject ... tagValue) {
-//		
-//		JSONObject messageMap = getMessageStructure(messageCategoly, getName(), getID(), receiverName, command, PATTERN_SYNC);
-//		
-//		debug.timeAssert("11/05/12 19:04:00", 100000, "sendSyncMessage アドレスが変わったら使えない、張り直しなどの対策が必要なところ");
-//		String href = Window.Location.getHref();
-//		postMessage(messageMap.toString(), href);
-//		
-//		addSendLog(messageCategoly, receiverName, command, PATTERN_SYNC, tagValue);//ログを残す
-//	
-//		while (true) {
-//			//ここで待つ、、負荷を見て考える。 っていうか完全停止したので、無し。両立出来ない、、　ここでポイントとしては停止して、で、メッセージとしての返答を貰わなければ行けない。非同期のメッセージが届くのを、通せん母子ながら待たないといけない。再帰、、、?で待つ、、、とか。。。？
-//		}
-//	}
+
+
+	/**
+	 * 現在のEventBusからこのMessengerのレジスタだけを削除する
+	 */
+	public void removeFromCurrentMessageAspect() {
+		debug.timeAssert("11/07/23 8:40:07", 0, "未完成。特定のイベントハンドラだけを消去するには、masterEventBusを多層化しないといけないが、それは環境が用意すべきもの。");
+		//masterHub.removeEventRelation();
+	}
 
 
 }

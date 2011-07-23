@@ -65,15 +65,14 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		return "com.kissaki.MessengerGWT";//パッケージの中で、クライアント/サーバの前+プロジェクトプロジェクト名称(xmlでの読み出しが行われている箇所)
 	}
 	
-	MessageMasterHub currentMaster;
+	MessageMasterHub currentAspectMaster;
 	
 	/**
 	 * セットアップ
 	 */
 	public void gwtSetUp () {
 		debug.trace("setup_"+this);
-		currentMaster = MessageMasterHub.getMaster();//この時点でマスターが存在すれば良い
-		debug.trace("setup_2_"+currentMaster);
+		currentAspectMaster = MessageMasterHub.setUpMessengerAspectForTesting();
 		messenger = new MessengerGWTImplement(TEST_MYNAME, this);
 	}
 	
@@ -82,11 +81,11 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	 * ティアダウン
 	 */
 	public void gwtTearDown () {
-		currentMaster.resetAllInvocationSetting();
-		currentMaster = null;
+		currentAspectMaster.tearDownMessengerAspectForTesting();
 		
 		rec.receiver = null;
 		rec = null;
+		
 		messenger = null;
 		debug.trace("teardown");
 	}

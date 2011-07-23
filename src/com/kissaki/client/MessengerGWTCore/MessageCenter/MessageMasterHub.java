@@ -64,7 +64,7 @@ public class MessageMasterHub implements MessengerGWTInterface {
 //			checker.addMessageReceivedEventHandler((MessageReceivedEventHandler)messengerSelf);
 //		}
 		
-		//一度設定すると、消せない！　この欠陥機構。
+		//一度設定すると、全体ごと一気にしか消せない！　この欠陥機構。 resetするにはより上位でアスペクトを切るしか無いが、それはもはや環境レベル。
 		if (eventBus == null) {
 			eventBus = new MessageReceivedEventBus();
 		}
@@ -108,9 +108,23 @@ public class MessageMasterHub implements MessengerGWTInterface {
 		debug.assertTrue(false, "never call this method");
 	}
 
-	public void resetAllInvocationSetting() {
-		eventBus = null;
-		hub = null;
+
+	/**
+	 * テスト用にMessengerのアスペクトをsetUpする
+	 * 使用しないでテストを行う場合、eventBusに同名のレジスタが複数置かれてしまい、反応しなくなる。
+	 * @return
+	 */
+	public static MessageMasterHub setUpMessengerAspectForTesting() {
+		return getMaster();
 	}
-	
+
+	/**
+	 * テスト用にMessegnerのアスペクトをtearDownさせる
+	 * 使用しないでテストを行う場合、eventBusに同名のレジスタが複数置かれてしまい、反応しなくなる。
+	 */
+	public void tearDownMessengerAspectForTesting() {
+		eventBus = null;
+	}
+
+
 }
