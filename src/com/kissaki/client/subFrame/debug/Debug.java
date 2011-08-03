@@ -1,9 +1,10 @@
 package com.kissaki.client.subFrame.debug;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 
 import com.google.gwt.i18n.client.DateTimeFormat;
-import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Window;
 
 
@@ -25,7 +26,8 @@ import com.google.gwt.user.client.Window;
  *
  */
 public class Debug {
-	String VERSION = "0.6.6";//assertNotNullメソッドを追加、エラー出力をJava assertに変更　timeAssertの内容をassertに変更 
+	String VERSION = "0.6.7";//サーバサイドでのAssertの効果を変更、エラーを出すのではなく、エラーを伝えるように変更。 
+//			"0.6.6";//assertNotNullメソッドを追加、エラー出力をJava assertに変更　timeAssertの内容をassertに変更 
 //		"0.6.5";//timeAssertの表示を見やすく調整 BOMBを行頭に表示
 //		"0.6.4";//TimeAssertの管理フラッグ追加 
 //		"0.6.3_11/05/10 21:42:04";////TimeAssertの文言の調整、BOMBのメッセージをBOMB直前に表示するように
@@ -45,6 +47,10 @@ public class Debug {
 	private String attr = null;//追跡用、作成者クラスの表示用文字列
 	private int traceSetting;//追跡用のセッティング
 	
+	
+	private ArrayList<String> assertCollectionBuffer;//アサートのコレクションを格納するバッファ
+	
+	
 	/*
 	 * traceSetting用セッティングステータス
 	 */
@@ -52,6 +58,8 @@ public class Debug {
 	public final static int DEBUG_EVENT_ON		= 0x0001;//デバッグの文字列をイベントとして出力する	
 	public final static int DEBUG_ALERT_ON		= 0x0010;//デバッグの文字列をアラートとして出力する
 	public final static int DEBUG_TIMEASSERT_ON	= 0x0100;//デバッグのタイムアサート(時限付きToDo表記)を発生させる
+	public final static int DEBUG_ASSERT_COLLECTION_ON = 0x1000;//デバッグのアサートコレクション設定をONにし、アサートを文字として回収する。
+	
 	
 	final String TRACE_MESSAGE = ":";//トレース文字列
 	final String ASSERT_MESSAGE = "_assert:";//アサート文字列
@@ -131,6 +139,7 @@ public class Debug {
 		Date date1 = dForm.parseStrict(timeString);
 		
 		long timeMine = date1.getTime()+timeLimit*1000;
+		
 		Date dateDefault = new Date();
 		long now = dateDefault.getTime();
 		if (isTraceSet(DEBUG_TIMEASSERT_ON)) { 
@@ -139,8 +148,13 @@ public class Debug {
 				assertDebugTrace("", comment+"	/left: "+(timeMine - now)+"msec");
 			} else {
 				assertDebugTrace("*BOMB*",attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
-				assert false;
-				throw new RuntimeException("*BOMB*"+attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
+				if (isTraceSet(DEBUG_ASSERT_COLLECTION_ON)) {
+					appendAssertCollectionBufferLine("*BOMB*"+	attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
+					
+				} else {
+					assertion("*BOMB*"+attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
+				}
+					
 			}
 		}
 		
@@ -151,6 +165,22 @@ public class Debug {
 	
 	
 	
+	private void appendAssertCollectionBufferLine(String string) {
+		assertCollectionBuffer.add(assertCollectionBuffer.size()+" "+string);
+	}
+
+
+
+	/**
+	 * アサーション内容
+	 * @param string
+	 */
+	private void assertion(String string) {
+		assert false;
+		throw new RuntimeException(string);
+	}
+
+
 
 	/**
 	 * デバッグモードを取得する
@@ -200,6 +230,15 @@ public class Debug {
 			selfDebugTrace("既に加算済み");
 		} else {
 			traceSetting |= debugSettingOn;
+		}
+		
+		switch (debugSettingOn) {
+		case DEBUG_ASSERT_COLLECTION_ON:
+			assertCollectionBuffer = new ArrayList<String>();
+			break;
+
+		default:
+			break;
 		}
 	}
 
@@ -260,9 +299,12 @@ public class Debug {
 	public boolean assertTrue(boolean b, String string) {
 		if (!b) {
 			selfDebugTrace(attr + ASSERT_MESSAGE + string);
-			assert false;
-//			if (isTraceSet(DEBUG_EVENT_ON)) ToDoAppDelegate.getDelegate().fireEvent(new DebugEvent(attr + ASSERT_MESSAGE + string));
-			throw new RuntimeException(attr + ASSERT_MESSAGE + string);
+			if (isTraceSet(DEBUG_ASSERT_COLLECTION_ON)) {
+				appendAssertCollectionBufferLine(attr + ASSERT_MESSAGE + string);
+			} else {
+				assertion(attr + ASSERT_MESSAGE + string);
+			}
+			
 		}
 		
 		return true;
@@ -305,6 +347,24 @@ public class Debug {
 	 */
 	private void assertDebugTrace (String head, String string) {
 		if (isDebug()) System.out.println(head+"	*timeAssert* "+attr + TRACE_MESSAGE + string);
+	}
+
+
+
+	/**
+	 * 特定の範囲のAssert文言を取得する
+	 * @return
+	 */
+	public String assertCollection() {
+		if (assertCollectionBuffer != null) {
+			StringBuffer answer = new StringBuffer();
+			for (String str : assertCollectionBuffer) {
+				answer.append(str+"\n");
+			}
+			assertCollectionBuffer = null;
+			return answer.toString();
+		}
+		return null;
 	}
 
 

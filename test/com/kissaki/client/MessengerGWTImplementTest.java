@@ -1,7 +1,7 @@
 package com.kissaki.client;
 
 /**
- * 非同期版はコチラ
+ * MessengerGWTのテスト
  */
 import java.util.List;
 
