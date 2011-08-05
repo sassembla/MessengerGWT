@@ -2,9 +2,9 @@ package com.kissaki.client.subFrame.debug;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
 
 import com.google.gwt.i18n.client.DateTimeFormat;
+import com.google.gwt.json.client.JSONObject;
 import com.google.gwt.user.client.Window;
 
 
@@ -26,14 +26,16 @@ import com.google.gwt.user.client.Window;
  *
  */
 public class Debug {
-	String VERSION = "0.6.7";//サーバサイドでのAssertの効果を変更、エラーを出すのではなく、エラーを伝えるように変更。 
+	String VERSION = "0.7.2";// assertJSONNotNull Bug Fix　null値を放り込んだ際にブロックをnoErrorで抜けるバグを修正
+//			"0.7.1";//JSONObjectの対象Key有無をチェックするassertJSONNotNullを追加 
+//			"0.7.0";//サーバサイドでのAssertの効果を変更、エラーを出すのではなく、エラーを伝えるように変更。 プロジェクトとして独立
 //			"0.6.6";//assertNotNullメソッドを追加、エラー出力をJava assertに変更　timeAssertの内容をassertに変更 
-//		"0.6.5";//timeAssertの表示を見やすく調整 BOMBを行頭に表示
-//		"0.6.4";//TimeAssertの管理フラッグ追加 
-//		"0.6.3_11/05/10 21:42:04";////TimeAssertの文言の調整、BOMBのメッセージをBOMB直前に表示するように
-//		"0.6.2_11/05/06 18:22:16";//TimeAssertの文言の調整 
-//		"0.6.1_11/05/05 9:02:09";
-//		"0.6.0_11/05/04 10:07:24";
+//			"0.6.5";//timeAssertの表示を見やすく調整 BOMBを行頭に表示
+//			"0.6.4";//TimeAssertの管理フラッグ追加 
+//			"0.6.3_11/05/10 21:42:04";////TimeAssertの文言の調整、BOMBのメッセージをBOMB直前に表示するように
+//			"0.6.2_11/05/06 18:22:16";//TimeAssertの文言の調整 
+//			"0.6.1_11/05/05 9:02:09";
+//			"0.6.0_11/05/04 10:07:24";
 	
 	/*
 	 * デバッグ状態　enumで持ちたい。
@@ -365,6 +367,28 @@ public class Debug {
 			return answer.toString();
 		}
 		return null;
+	}
+
+
+	/**
+	 * 特定のJSONObjectの直下に、指定したKeyが存在している場合、Trueを返す。存在していない場合、Assertを発生させる。
+	 * @param key
+	 * @param root
+	 * @return
+	 */
+	public boolean assertJSONNotNull(String key, JSONObject root) {
+		assertNotNull(root, root+"	is null, no key	"+key);
+
+		if (root.keySet().size() == 0) {
+			assertTrue(false, root+"	is contains no key	"+key);
+			return false;
+		}
+		if (root.containsKey(key)) {
+			return true;
+		}
+		
+		assertTrue(false, key+"	is not contained in	"+root);
+		return false;
 	}
 
 
