@@ -26,7 +26,8 @@ import com.google.gwt.user.client.Window;
  *
  */
 public class Debug {
-	String VERSION = "0.7.2";// assertJSONNotNull Bug Fix　null値を放り込んだ際にブロックをnoErrorで抜けるバグを修正
+	String VERSION = "0.7.3";//timeAssertについて、Illigalなフォーマットに対してエラーをはく処理を追記
+//			"0.7.2";// assertJSONNotNull Bug Fix　null値を放り込んだ際にブロックをnoErrorで抜けるバグを修正
 //			"0.7.1";//JSONObjectの対象Key有無をチェックするassertJSONNotNullを追加 
 //			"0.7.0";//サーバサイドでのAssertの効果を変更、エラーを出すのではなく、エラーを伝えるように変更。 プロジェクトとして独立
 //			"0.6.6";//assertNotNullメソッドを追加、エラー出力をJava assertに変更　timeAssertの内容をassertに変更 
@@ -84,7 +85,7 @@ public class Debug {
 	 */
 	private void initialize(Object obj) {
 		addTraceSetting(DEBUG_EVENT_ON);//クライアント内のデバッグ表示用
-		addTraceSetting(DEBUG_TIMEASSERT_ON);
+//		addTraceSetting(DEBUG_TIMEASSERT_ON);
 //		addTraceSetting(DEBUG_ALERT_ON);//JavaScriptでのどうしようも無い時のデバッグ用
 		
 		attr = ""+obj.getClass();
@@ -126,19 +127,27 @@ public class Debug {
 	
 	/**
 	 * timeAssert
-	 * yy/MM/dd H:mm:ss　フォーマットで日時をセット、余暇時間をsec単位で入力、コメントを入れておくと、
-	 * その時刻+sec後にこのメソッドが起動したタイミングでassert、Exceptionを発生させる。
 	 * 
-	 * java.lang.RuntimeException
+	 * yy/MM/dd H:mm:ss　フォーマットで日時をセット、余暇時間をsec単位で入力、コメントを入れておくと、
+	 * その時刻+sec後にこのメソッドが起動したタイミングでassert、Exceptionを発生させる
+	 * sample: 11/08/07 14:34:43
 	 * 
 	 * @param timeString
 	 * @param timeLimit
 	 * @param comment
 	 */
 	public void timeAssert(String timeString, int timeLimit, String comment) {
+		//11/08/07 14:34:43
 		
 		DateTimeFormat dForm = DateTimeFormat.getFormat("yy/MM/dd H:mm:ss");
-		Date date1 = dForm.parseStrict(timeString);
+		Date date1 = null;
+		try {
+			date1 = dForm.parseStrict(timeString);
+		} catch (Exception e) {
+			assertTrue(false, "not correct format for timeAssert! ex:"+"11/08/07 14:34:43");
+		}
+		assert date1 != null: assertTrue(false, "unknown error. maybe caused by not correct format for timeAssert! ex:"+"11/08/07 14:34:43");
+		
 		
 		long timeMine = date1.getTime()+timeLimit*1000;
 		
@@ -152,7 +161,6 @@ public class Debug {
 				assertDebugTrace("*BOMB*",attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
 				if (isTraceSet(DEBUG_ASSERT_COLLECTION_ON)) {
 					appendAssertCollectionBufferLine("*BOMB*"+	attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
-					
 				} else {
 					assertion("*BOMB*"+attr + ASSERT_MESSAGE + comment+"	/expired:	+"+(now - timeMine)+"msec before");
 				}
@@ -178,7 +186,7 @@ public class Debug {
 	 * @param string
 	 */
 	private void assertion(String string) {
-		assert false;
+		assert false : string;
 		throw new RuntimeException(string);
 	}
 
