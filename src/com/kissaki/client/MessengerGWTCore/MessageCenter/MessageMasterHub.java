@@ -3,6 +3,7 @@ package com.kissaki.client.MessengerGWTCore.MessageCenter;
 
 import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
 import com.kissaki.client.subFrame.debug.Debug;
+import com.kissaki.client.uuidGenerator.UUID;
 
 
 /**
@@ -22,13 +23,14 @@ public class MessageMasterHub implements MessengerGWTInterface {
 	private static MessageMasterHub hub;
 	private static MessageReceivedEventBus eventBus;//付随するイベントオブジェクト、これもシングルトン。
 	
+	String m_masterID;
 	/**
 	 * シングルトン取得メソッド
 	 * @return
 	 */
 	public static MessageMasterHub getMaster () {
 		if (hub == null) {
-			hub = new MessageMasterHub();
+			hub = new MessageMasterHub(UUID.uuid(8, 16));
 			hub.setMessengerGlobalStatus(MESSENGER_STATUS_READY_FOR_INITIALIZE);
 		}
 		return hub;
@@ -37,8 +39,9 @@ public class MessageMasterHub implements MessengerGWTInterface {
 	/**
 	 * コンストラクタ、シングルトンの為に秘匿
 	 */
-	private MessageMasterHub() {
+	private MessageMasterHub(String masterID) {
 		debug = new Debug(this);
+		m_masterID = masterID;
 	}
 	
 	/**
@@ -124,6 +127,14 @@ public class MessageMasterHub implements MessengerGWTInterface {
 	 */
 	public void tearDownMessengerAspectForTesting() {
 		eventBus = null;
+	}
+
+	/**
+	 * 現在のアスペクトのID(master自身のID)を返す
+	 * @return
+	 */
+	public String masterID() {
+		return m_masterID;
 	}
 
 

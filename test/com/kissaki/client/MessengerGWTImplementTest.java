@@ -17,14 +17,17 @@ import com.kissaki.client.MessengerGWTCore.MessengerGWTImplement;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageMasterHub;
 import com.kissaki.client.subFrame.debug.Debug;
-import com.kissaki.client.uuidGenerator.UUID;
-import com.sun.org.apache.bcel.internal.generic.NEW;
 
 
 public class MessengerGWTImplementTest extends GWTTestCase implements MessengerGWTInterface {
 	Debug debug;
 	
 	MessengerGWTImplement messenger;
+	
+
+	MessageMasterHub currentAspectMaster;
+	
+	
 	String TEST_MYNAME = "sender";
 	String TEST_MYID = "testID";
 	String TEST_PARENTNAME	= "TEST_PARENTNAME";
@@ -64,8 +67,6 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	public String getModuleName() {
 		return "com.kissaki.MessengerGWT";//パッケージの中で、クライアント/サーバの前+プロジェクトプロジェクト名称(xmlでの読み出しが行われている箇所)
 	}
-	
-	MessageMasterHub currentAspectMaster;
 	
 	/**
 	 * セットアップ
@@ -1482,4 +1483,10 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 		assertEquals(1, rec.getMessengerForTesting().childList.size());
 	}
 	
+	/**
+	 * MasterHubの取得を行う
+	 */
+	public void testMasterHub () {
+		assertEquals(currentAspectMaster.masterID(), messenger.masterHub().masterID());
+	}
 }

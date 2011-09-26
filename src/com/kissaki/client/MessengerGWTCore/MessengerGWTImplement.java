@@ -38,7 +38,8 @@ import com.kissaki.client.uuidGenerator.UUID;
  */
 public class MessengerGWTImplement extends MessageReceivedHandler implements MessengerGWTInterface {
 	
-	static final String version = "0.8.4";//テスト用にMessengerのAspectをリセットする機構を簡易化 setUpMessengerAspectForTesting() と tearDownMessengerAspectForTesting()
+	static final String version = "0.8.5";//アスペクト変化を認識/確認するために、 MasterHubへのアクセッサと、masterIDを追加 
+//		"0.8.4";//テスト用にMessengerのAspectをリセットする機構を簡易化 setUpMessengerAspectForTesting() と tearDownMessengerAspectForTesting()
 //		"0.8.3";//親子登録のTRIGGERがreceiveCenterまで貫通してしまうバグを解消
 //		"0.8.2";//親が設定されたタイミングで、TRIGGERを発生させるよう調整
 //		"0.8.1";//バグフィックス　テストが並列に行われていたのを解消。 
@@ -115,8 +116,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		parentName = "";
 		parentID = "";
 		
-
-		debug.timeAssert("11/07/23 19:45:43", 10000, "わざわざシングルトン使ってる。Ginとか使って祖結合に切り替えたい");
+		debug.timeAssert("11/09/26 12:57:33", 864000, "わざわざシングルトン使ってる。Ginとか使って祖結合に切り替えたい");//E27D5C89-A785-4324-B83D-23228C675D2E
 		if (masterHub == null) {
 			masterHub = MessageMasterHub.getMaster();
 		}
@@ -334,17 +334,6 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		case MS_CATEGOLY_CALLPARENT:
 			//宛先MIDが自分のIDと一致するか
 			if (toID.equals(getID())) {
-
-//				for (id key in [self getChildDict]) {//子供リストに含まれていなければ実行しないし、受け取らない。
-//					if ([[[self getChildDict] objectForKey:key] isEqualToString:senderName]) {
-//						[self saveLogForReceived:recievedLogDict];
-//						
-//						//設定されたbodyのメソッドを実行
-//						IMP func = [[self getMyBodyID] methodForSelector:[self getMyBodySelector]];
-//						(*func)([self getMyBodyID], [self getMyBodySelector], notification);
-//						return;
-//					}
-//				}
 				
 				addReceiveLog(rootObject);
 				receiveCenter(rootMessage);
@@ -653,7 +642,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param href
 	 */
 	private void postMessage (String message, String href) {
-		debug.timeAssert("11/07/23 11:54:19", 1000000, "postMessage アドレスが変わったら使えない、張り直しなどの対策が必要なところ");
+		debug.timeAssert("11/09/26 13:03:03", 864000, "postMessage アドレスが変わったら使えない、張り直しなどの対策が必要なところ");//63A4F0AD-3E05-415F-9018-2C92641DC3AA
 		post(message, href);
 	}
 	
@@ -1183,6 +1172,16 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	public void removeFromCurrentMessageAspect() {
 		debug.timeAssert("11/07/23 8:40:07", 0, "未完成。特定のイベントハンドラだけを消去するには、masterEventBusを多層化しないといけないが、それは環境が用意すべきもの。");
 		//masterHub.removeEventRelation();
+	}
+
+
+
+	/**
+	 * masterHubを返す
+	 * @return
+	 */
+	public MessageMasterHub masterHub() {
+		return masterHub;
 	}
 
 
