@@ -34,11 +34,12 @@ import com.kissaki.client.uuidGenerator.UUID;
  * -クライアント間の通信：未作成
  * -クライアント-サーバ間の通信：未作成
  * 
- * @author ToruInoue
+ * @author ToruInoue, sassembla, krmd
  */
 public class MessengerGWTImplement extends MessageReceivedHandler implements MessengerGWTInterface {
 	
-	static final String version = "0.8.5";//アスペクト変化を認識/確認するために、 MasterHubへのアクセッサと、masterIDを追加 
+	static final String version = "0.9.0";//no static element.
+//		"0.8.5";//アスペクト変化を認識/確認するために、 MasterHubへのアクセッサと、masterIDを追加 
 //		"0.8.4";//テスト用にMessengerのAspectをリセットする機構を簡易化 setUpMessengerAspectForTesting() と tearDownMessengerAspectForTesting()
 //		"0.8.3";//親子登録のTRIGGERがreceiveCenterまで貫通してしまうバグを解消
 //		"0.8.2";//親が設定されたタイミングで、TRIGGERを発生させるよう調整
@@ -98,8 +99,6 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	public final String TRIGGER_PARENTCONNECTED = "TRIGGER_PARENTCONNECTED";
 	
 	
-	private static MessageMasterHub masterHub;
-	
 	
 	/**
 	 * コンストラクタ
@@ -116,59 +115,49 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		parentName = "";
 		parentID = "";
 		
-		debug.timeAssert("11/09/26 12:57:33", 864000, "わざわざシングルトン使ってる。Ginとか使って祖結合に切り替えたい");//E27D5C89-A785-4324-B83D-23228C675D2E
-		if (masterHub == null) {
-			masterHub = MessageMasterHub.getMaster();
-		}
 		
 		sendList = new ArrayList<JSONObject>();
 		receiveList = new ArrayList<JSONObject>();
 
 		childList = new ArrayList<JSONObject>(); 
 		
-		if (masterHub.getMessengerGlobalStatus() == MESSENGER_STATUS_READY_FOR_INITIALIZE) {
-			setUpMessaging(masterHub);
+		postMessageAPIMethod = get(this);
+		
+		if (MessageMasterHub.getMaster().getMessengerGlobalStatus() == MESSENGER_STATUS_READY_FOR_INITIALIZE) {
+			int status = setUp(postMessageAPIMethod);//Java-method to JavaScriptObject(as function)
+			
+			debug.assertTrue(MessageMasterHub.getMaster().getMessengerGlobalStatus() == MESSENGER_STATUS_READY_FOR_INITIALIZE, "already initialized");
+			MessageMasterHub.getMaster().setMessengerGlobalStatus(status);
 		}
 		
-		masterHub.setInvokeObject(this);
+		MessageMasterHub.getMaster().setInvokeObject(this);
 	}
 	
+	private JavaScriptObject postMessageAPIMethod;
 	
-	
-	
-	/**
-	 * JSNIへとmtdメソッドのJSオブジェクトを投入し、messageハンドラを初期化する。
-	 * @param globalMasterHub 
-	 */
-	public void setUpMessaging (MessageMasterHub globalMasterHub) {
-		int status = setUp(get());//Javaのメソッドのポインタ渡しが実現されている。
-		debug.assertTrue(globalMasterHub.getMessengerGlobalStatus() == MESSENGER_STATUS_READY_FOR_INITIALIZE, "already initialized");
-		globalMasterHub.setMessengerGlobalStatus(status);
-	}
 	
 	/**
 	 * mtdメソッドをJSOとして値渡しするためのメソッド
+	 * @param messengerGWTImplement 
 	 * @return
 	 */
-	private native JavaScriptObject get () /*-{
-		return @com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::mtd(Ljava/lang/String;);
+	private native JavaScriptObject get (MessengerGWTImplement messengerGWTImplement) /*-{
+		function f (e){messengerGWTImplement.@com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::mtd(Ljava/lang/String;)(e.data)};
+		return f;
 	}-*/;
 	
-
+	
 	/**
-	 * このメソッドは、staticであるために、
-	 * リスナに関しては最初に誰かがひとつセットすればそれでいい。
-	 * 
+	 * window.postMessageの返り値を受け取るメソッド
 	 * @param message
 	 */
-	public static void mtd(String message) {
+	private void mtd(String message) {
 		MessageMasterHub.messageReceived(message);
 	}
 	
 	
-	
 	/**
-	 * セットアップ
+	 * setUp
 	 * 
 	 * Messengerの初期設定を行う
 	 * Nativeのメッセージ受信部分
@@ -180,7 +169,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	    		return @com.kissaki.client.MessengerGWTCore.MessengerGWTInterface::MESSENGER_STATUS_NOT_SUPPORTED;
 			} else {
 				window.addEventListener('message',
-					function(e) {method(e.data);},
+					method,
 					false);
 			}
 			
@@ -191,61 +180,45 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		}
 	}-*/;
 	
-	
-//	/**
-//	 * セットアップ
-//	 * 
-//	 * Messengerの初期設定を行う
-//	 * Nativeのメッセージ受信部分
-//	 * 
-//	 */
-//	public native void setUp(String messengerName, String messengerID) /*-{
-//		if (typeof window.postMessage === "undefined") { 
-//    		alert("残念ですが、あなたのブラウザはメッセージAPIをサポートしていません。"); 
-//		}
-//		this.@com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::log(Ljava/lang/String;)("セットアップ");//com.google.gwt.user.client.Event
-//		
-//		
-//		window.addEventListener('message', 
-//			center,
-//			//receiver,
-////			this.@com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::log2(Lcom/google/gwt/user/client/Event;),//ここね。
-//			false);
-////		window.attachEvent('message', this.@com.kissaki.client.MessengerGWTCore.MessengerGWTImplement::log2(Lcom/google/gwt/user/client/Event;));
-//		
-//		function receiver() {//この書き方だと、内部のメソッドはstaticで無ければ行けない。それは、駄目でしょ。
-////			if (e.origin == 'http://example.com') {
-////				if (e.data == 'Hello world') {
-////					e.source.postMessage('Hello', e.origin);
-////				} else {
-////					alert(e.data);
-////				}
-////			}
-//		}
-//	}-*/;
+	/**
+	 * tearDown
+	 * @param method
+	 * @return
+	 */
+	private native void tearDown(JavaScriptObject method) /*-{
+		window.removeEventListener('message',
+					method,
+					false);
+	}-*/;
 	
 
 	/**
-	 * メッセージ受取メソッド
+	 * EventBus経由のメッセージ受取メソッド
 	 * @param event
 	 */
 	@Override
 	public void onMessageReceived(MessageReceivedEvent event) {
 		String rootMessage = event.getMessage();
-		
+		onMessagereceivedFromPostMessageAPI(rootMessage);
+	}
+	
+	/**
+	 * PostMessageAPI からダイレクトで複数のmessengerが各個に呼ばれる事を想定したメソッド
+	 * @param rootMessage
+	 */
+	public void onMessagereceivedFromPostMessageAPI (String rootMessage) {
 		JSONObject rootObject = null;
-		
 		
 		try {
 			rootObject = JSONParser.parseStrict(rootMessage).isObject();
 		} catch (Exception e) {
-//			debug.trace("receiveMessage_parseError_"+e);
+			debug.trace("receiveMessage_parseError_"+e);
 			return;
 		}
 		
 		
 		if (rootObject == null) {
-//			debug.trace("rootObject = null");
+			debug.trace("rootObject = null");
 			return;
 		}
 		
@@ -373,7 +346,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 				childList.add(childInfo);
 				
 				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_RET, UUID.uuid(8,16), getName(), getID(), fromName, fromID, TRIGGER_PARENTCONNECTED);
-				masterHub.syncMessage(messageMap.toString());
+				MessageMasterHub.getMaster().syncMessage(messageMap.toString());
 				addSendLog(messageMap);
 			}
 			break;
@@ -403,7 +376,6 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 			return;
 		}
 	}
-	
 	
 	
 
@@ -509,7 +481,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 			if (currentChild.get(CHILDLIST_KEY_CHILD_NAME).isString().stringValue().equals(toName)) {
 				String toID = currentChild.get(CHILDLIST_KEY_CHILD_ID).isString().stringValue();
 				JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLCHILD, UUID.uuid(8,16), getName(), getID(), toName, toID, command, tagValue);
-				masterHub.syncMessage(messageMap.toString());
+				MessageMasterHub.getMaster().syncMessage(messageMap.toString());
 				addSendLog(messageMap);
 			}
 		}
@@ -524,7 +496,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 */
 	public void sCallMyself(String command, JSONObject ... tagValue) {
 		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_LOCAL, UUID.uuid(8,16), getName(), getID(), getName(), getID(), command, tagValue);
-		masterHub.syncMessage(messageMap.toString());
+		MessageMasterHub.getMaster().syncMessage(messageMap.toString());
 		addSendLog(messageMap);
 	}
 	
@@ -540,7 +512,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		debug.assertTrue(parentID != "", "SYNC	parentID not applied yet");
 		
 		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_CALLPARENT, UUID.uuid(8,16), getName(), getID(), getParentName(), getParentID(), command, tagValue);
-		masterHub.syncMessage(messageMap.toString());
+		MessageMasterHub.getMaster().syncMessage(messageMap.toString());
 		addSendLog(messageMap);
 	}
 	
@@ -1078,7 +1050,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @return the messengerStatus
 	 */
 	public int getMessengerStatus() {
-		return masterHub.getMessengerGlobalStatus();
+		return MessageMasterHub.getMaster().getMessengerGlobalStatus();
 	}
 
 
@@ -1115,7 +1087,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 		
 		String messageID = UUID.uuid(8,16);
 		JSONObject messageMap = getMessageStructure(MS_CATEGOLY_PARENTSEARCH_S, messageID, getName(), getID(), inputName, "", "");
-		masterHub.syncMessage(messageMap.toString());
+		MessageMasterHub.getMaster().syncMessage(messageMap.toString());
 		addSendLog(messageMap);
 	}
 
@@ -1170,8 +1142,9 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * 現在のEventBusからこのMessengerのレジスタだけを削除する
 	 */
 	public void removeFromCurrentMessageAspect() {
-		debug.timeAssert("11/07/23 8:40:07", 0, "未完成。特定のイベントハンドラだけを消去するには、masterEventBusを多層化しないといけないが、それは環境が用意すべきもの。");
-		//masterHub.removeEventRelation();
+		debug.timeAssert("11/09/29 17:17:21", 3600, "未完成の切断");//24F8A5DC-A35B-4981-A206-B5AB86690992
+		tearDown(postMessageAPIMethod);
+		debug.trace("this	"+this+"/postMessageAPIMethod	tearDown	"+postMessageAPIMethod);
 	}
 
 
@@ -1181,7 +1154,7 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @return
 	 */
 	public MessageMasterHub masterHub() {
-		return masterHub;
+		return MessageMasterHub.getMaster();
 	}
 
 

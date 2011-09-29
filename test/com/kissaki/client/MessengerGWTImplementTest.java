@@ -84,9 +84,11 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 	public void gwtTearDown () {
 		currentAspectMaster.tearDownMessengerAspectForTesting();
 		
+		rec.receiver.removeFromCurrentMessageAspect();
 		rec.receiver = null;
 		rec = null;
 		
+		messenger.removeFromCurrentMessageAspect();
 		messenger = null;
 		debug.trace("teardown");
 	}
