@@ -2,7 +2,7 @@ package com.kissaki.client.MessengerGWTCore.MessageCenter;
 
 
 import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
-import com.kissaki.client.subFrame.debug.Debug;
+import com.kissaki.client.debugger.Debug;
 import com.kissaki.client.uuidGenerator.UUID;
 
 

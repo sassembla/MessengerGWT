@@ -1,0 +1,161 @@
+apply plugin:"java"
+
+prijectIdentity = "com.kissaki.client.MessengerGWT"
+projectTestIdentity = "com.kissaki.client.MessengerGWTImplementTest";
+
+version = 1.0
+
+gwtVersion = "2.5.0-rc1"
+
+task wrapper(type: Wrapper) {
+    gradleVersion = version
+}
+
+repositories {
+	mavenCentral()
+}
+
+
+tasks.withType(Compile) {
+    options.encoding = 'UTF-8'//for Japanese
+}
+
+
+sourceSets {
+	main {
+		java {
+			srcDir 'src'
+    	}
+	}
+	test {
+		java {
+			srcDir 'test'
+    	}
+  	}
+}
+
+configurations { 
+	gwtCompile
+	gwtTestCompile
+	surefire
+	mavenTestRunner
+}
+
+dependencies {
+	compile (
+		[group: 'com.google.gwt', name: 'gwt-servlet', version: gwtVersion],
+		[group: 'com.google.gwt', name: 'gwt-user', version: gwtVersion],
+		[group: 'com.google.gwt', name: 'gwt-dev', version: gwtVersion],
+		fileTree(dir: 'war/WEB-INF/lib', includes: ['*.jar'])
+	)
+
+    //gwt compile
+	gwtCompile (          
+		[group: 'com.google.gwt', name: 'gwt-user', version: gwtVersion],
+		[group: 'com.google.gwt', name: 'gwt-dev', version: gwtVersion],
+		fileTree(dir: 'war/WEB-INF/lib', includes: ['*.jar']),
+		fileTree(dir: 'jar', includes: ['*.jar'])
+	)
+	
+	gwtTestCompile (
+		[group: 'junit', name: 'junit', version: '4.8.2'],
+		fileTree(dir: 'war/WEB-INF/lib', includes: ['*.jar'])
+	)
+	
+	testCompile (
+		[group: 'com.google.gwt', name: 'gwt-servlet', version: gwtVersion],
+		[group: 'com.google.gwt', name: 'gwt-user', version: gwtVersion],
+		[group: 'com.google.gwt', name: 'gwt-dev', version: gwtVersion],
+		[group: 'junit', name: 'junit', version: '4.8.2'],
+		fileTree(dir: 'war/WEB-INF/lib', includes: ['*.jar'])
+	)
+	
+	surefire (
+		[group: 'org.apache.maven.surefire', name: 'surefire-api', version: '2.4.3']
+	)
+	
+	mavenTestRunner (
+		[group: 'org.codehaus.mojo', name:'gwt-maven-plugin', version: '2.4.0']
+	)
+}
+
+
+task copyGWTXML (type: Copy) {
+	from 'src/com/kissaki/'
+	into 'build/classes/main/com/kissaki/'
+}
+
+
+task gwtCompile (dependsOn:[classes, copyGWTXML]) << {
+	println "classesCompile and copy-javaSources into build/~ finished"
+}
+
+
+//copy GWT.XML of src
+task copyJUnitGWTXML (type: Copy) {
+	from 'test/com/kissaki/'
+	into 'build/classes/test/com/kissaki/'
+}
+
+//
+task gwtTestCompile (dependsOn: [testClasses, copyJUnitGWTXML]) << {
+	println "testClassesCompile and copy-javaSources into build/~ finished"
+}
+
+
+//file to be observed
+observedFile = "tmpOutput.txt"
+
+//folder for output test-result
+testResultOutputDir = "build/test-results/gwt"
+
+//test-run in Browser
+task gwtTestRunAsJS (dependsOn: [gwtCompile, gwtTestCompile]) << {
+	
+	def id = Math.random()//0.x
+	
+	//observer. should be run in same-task.
+	def observation = ["java","-jar","FileObserver.jar", 
+	"-observe", observedFile, 
+	"-find", "http://", 
+	"-planCommand", "open,FOUNDLINE,-a,Safari", 
+	"-interval", "2000", 
+	"-processRecordOut", "out.txt", 
+	"-processRecordOutId gwtTestObservation_"+id,"-d"].execute()	
+
+
+
+	//raw-build query for gwt
+	def options = "-out changedDeaultTarget/www-test " +
+		"-prod -runStyle Manual:1 -testMethodTimeout 1 " +
+		"-draftCompile " + 
+/*		"-localWorkers 4 "//無意味			*/
+/*		"-logdir testLog.txt "//unknown*/
+		"-userAgents safari ";
+	
+
+	//TestRunner. create test-env then output ADDRESS of test.
+	file(observedFile).withOutputStream { outstr -> 
+	
+	     def result = exec {
+	        executable = 'java'
+	        args = ["-Xmx512m", 
+
+			"-classpath", 
+			"\""+ sourceSets.main.runtimeClasspath.asPath +
+			":" + sourceSets.test.runtimeClasspath.asPath + 
+			":" + configurations.gwtCompile.asPath + 
+			":" + configurations.mavenTestRunner.asPath +
+			"\"",
+			
+			"-Dgwt.args= "+options,
+			"-Dsurefire.reports="+testResultOutputDir,
+			"com.kissaki.MondogrossoTestRunner",//runner jar
+			projectTestIdentity
+			]//test target class
+			
+	       	standardOutput = outstr 
+	    }
+	}
+}
+

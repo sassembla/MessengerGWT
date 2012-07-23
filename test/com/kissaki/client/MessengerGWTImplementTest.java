@@ -16,7 +16,7 @@ import com.google.gwt.user.client.Timer;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTImplement;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageMasterHub;
-import com.kissaki.client.subFrame.debug.Debug;
+import com.kissaki.client.debugger.Debug;
 
 
 public class MessengerGWTImplementTest extends GWTTestCase implements MessengerGWTInterface {

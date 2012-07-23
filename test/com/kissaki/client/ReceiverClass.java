@@ -2,7 +2,7 @@ package com.kissaki.client;
 
 import com.kissaki.client.MessengerGWTCore.MessengerGWTImplement;
 import com.kissaki.client.MessengerGWTCore.MessengerGWTInterface;
-import com.kissaki.client.subFrame.debug.Debug;
+import com.kissaki.client.debugger.Debug;
 
 public class ReceiverClass implements MessengerGWTInterface {
 	Debug debug;

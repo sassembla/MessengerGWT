@@ -16,7 +16,7 @@ import com.google.gwt.user.client.Window;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageMasterHub;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedEvent;
 import com.kissaki.client.MessengerGWTCore.MessageCenter.MessageReceivedHandler;
-import com.kissaki.client.subFrame.debug.Debug;
+import com.kissaki.client.debugger.Debug;
 import com.kissaki.client.uuidGenerator.UUID;
 
 
@@ -38,7 +38,7 @@ import com.kissaki.client.uuidGenerator.UUID;
  */
 public class MessengerGWTImplement extends MessageReceivedHandler implements MessengerGWTInterface {
 	
-	static final String version = "0.9.0";//no static element.
+	static final String version = "0.9.1";//no static element.
 //		"0.8.5";//アスペクト変化を認識/確認するために、 MasterHubへのアクセッサと、masterIDを追加 
 //		"0.8.4";//テスト用にMessengerのAspectをリセットする機構を簡易化 setUpMessengerAspectForTesting() と tearDownMessengerAspectForTesting()
 //		"0.8.3";//親子登録のTRIGGERがreceiveCenterまで貫通してしまうバグを解消
