@@ -614,7 +614,6 @@ public class MessengerGWTImplement extends MessageReceivedHandler implements Mes
 	 * @param href
 	 */
 	private void postMessage (String message, String href) {
-		debug.timeAssert("11/09/26 13:03:03", 864000, "postMessage アドレスが変わったら使えない、張り直しなどの対策が必要なところ");//63A4F0AD-3E05-415F-9018-2C92641DC3AA
 		post(message, href);
 	}
 	

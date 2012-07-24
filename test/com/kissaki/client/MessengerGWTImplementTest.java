@@ -942,7 +942,7 @@ public class MessengerGWTImplementTest extends GWTTestCase implements MessengerG
 				if (i == 3) {
 					try {
 						messengerOrphan.callParent("");
-					} catch (AssertionError e) {
+					} catch (Exception e) {
 						cancel();
 						finishTest();
 					}
