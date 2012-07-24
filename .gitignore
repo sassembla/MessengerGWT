@@ -2,7 +2,6 @@ test-classes/*
 .gradle/*
 
 build/*
-changedDeaultTarget/*
 
 gwt-unitCache/*
 war/WEB-INF/lib/.DS_Store
@@ -26,3 +25,9 @@ war/WEB-INF/classes/com/kissaki/MessengerGWT.gwt.xml
 
 test-classes/*
 test-classes/com/kissaki/client/ReceiverClass.class
+
+changedDeaultTarget/gwt-unitCache/*
+
+changedDeaultTarget/www-test/WEB-INF/*
+
+changedDeaultTarget/www-test/com.kissaki.MessengerGWT.JUnit/*
